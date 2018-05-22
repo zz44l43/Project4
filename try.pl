@@ -1,90 +1,33 @@
-read_file(Filename, Content) :-
-
-        open(Filename, read, Stream),
-
-        read_lines(Stream, Content),
-
-        close(Stream).
-
-
-
-
-
-% read_line/3.
-
-read_line(Stream, Line, Last) :-
-
-        get_char(Stream, Char),
-
-        (   Char = end_of_file
-
-        ->  Line = [],
-
-                Last = true
-        ).
-
-% print_puzzle/3.
-
-print_puzzle(SolutionFile, Puzzle) :-
-
-        open(SolutionFile, write, Stream),
-
-        maplist(print_row(Stream), Puzzle),
-
-        close(Stream).
-
-
-% read_line/2.
-
-read_line(Stream, Row) :-
-
-        maplist(put_puzzle_char(Stream), Row),
-
-        nl(Stream).
-
-% put_puzzle_char/2.
-
-
-% print_row/2.
-
-print_row(Stream, Row) :-
-
-        maplist(put_puzzle_char(Stream), Row),
-
-        nl(Stream).
-
-
-put_puzzle_char(Stream, Char) :-
-
-        (   var(Char)
-
-        ->  put_char(Stream, '_')
-
-        ;   put_char(Stream, Char)
-
-        ).
-
-% read_lines/2.
+my_read_file(File, List):-
+                open(File, read, Stream),
+                read_lines(Stream, List),
+                close(Stream).
 
 read_lines(Stream, Content) :-
-
         read_line(Stream, Line, Last),
-
         (   Last = true
-
         ->  (   Line = []
-
                 ->  Content = []
-
                 ;   Content = [Line]
-
                 )
-
         ;  Content = [Line|Content1],
-
+                write(Content),
                 read_lines(Stream, Content1)
-
         ).
+
+read_line(Stream, Line, Last) :-
+        get_char(Stream, Char),
+        (   Char = end_of_file
+        ->  Line = [],
+                Last = true
+        ; Char = '\n'
+        ->  Line = [],
+                Last = false
+        ;   Line = [Char|Line1],
+                read_line(Stream, Line1, Last)
+        ).
+
+
 
 get_Row(Row,C,O):-
         (
@@ -97,26 +40,60 @@ get_Row(Row,C,O):-
         ).
         
 get_Map(R,O):-
-    get_Map(R,R,O).
+    get_Map(R,R,O),
+    length(O, L),
+    print(L).
+        
 
 get_Map(R,C,O):-
     (
-        R > 0
+        R > 1
         -> Rr is R -1,
-        get_Roww(R,C,0,Ro),
+        get_Roww(R,C,1,Ro),
         append(Ro,O1,O),
         get_Map(Rr,C,O1)
         ;
-        get_Roww(R,C,0,O)
+        get_Roww(R,C,1,O)
     ).
 
 get_Roww(Row,C,A,O):-
         (
-            C > 0
+            C > 1
             -> Cc is C-1,
             Aa is A + 1,
-            O = [(Row,A)|O1],
+            O = [(Row,A, " ")|O1],
             get_Roww(Row,Cc,Aa,O1)
             ;
-            O =[(Row,A)]
+            O =[(Row,A," ")]
         ).
+
+generate_path((X,Y),Row,Col,(Dx,Dy),Edges):-
+        (
+                Dx > X
+                -> NewX is X + 1,
+                Edges = [((X,Y), "east", (NewX,Y))|Follow],
+                generate_path((NewX,Y),Row,Col, (Dx,Dy),Follow)
+                ;
+                Dy > Y
+                -> NewY is Y + 1,
+                Edges = [((X,Y), "south", (X,NewY))|Follow],
+                generate_path((X,NewY),Row,Col, (Dx,Dy),Follow)
+                ;
+                Edges = []
+        ).
+
+move_x(X,Dx,Path):-
+        {
+                Dx > X
+                -> NewX is X + 1,
+                Path = [NewX|Follow],
+                move_x(NewX,Dx,Follow)
+                ;
+                Path = []
+        }.
+
+aa((X,Y),E):-
+        NewX is X + 1,
+        E = (NewX,Y).
+
+points(L) :- setof( (X,Y), (member(X,[0,1,2,3,4,5,6,7,8,9,10]), member(Y,[0,1,2,3,4,5,6,7,8,9,10])), L).
