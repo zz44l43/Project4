@@ -89,8 +89,41 @@ move_x(X,Dx,Path):-
                 Path = [NewX|Follow],
                 move_x(NewX,Dx,Follow)
                 ;
-                Path = []
+                Path = [X]
         }.
+
+
+move(X,Y,Dx,Dy,Path):-
+        move_x2(X,Dx,XPath),
+        move_y2(Y,Dy,YPath),
+        pair(XPath,YPath,Path).
+
+pair([],_,[]).
+pair([X|Xs],Y,Path):-
+        pair_s(X,Y,Path),
+        pair(Xs,Y,Path).
+
+pair_s(_,[],[]).
+pair_s(X,[Y|Ys],[X-Y|Path]):-
+        pair_s(X,Ys,Path).
+
+
+
+move_x2(Dx,Dx,[Dx]).
+move_x2(X,Dx,[X|Path]):-
+        (
+        X<Dx
+        -> NewX is X + 1,
+        move_x2(NewX, Dx,Path)
+        ).
+
+move_y2(Dy,Dy,[Dy]).
+move_y2(Y,Dy,[Y|Path]):-
+        (
+        Y<Dy
+        -> NewY is Y + 1,
+        move_y2(NewY, Dy, Path)
+        ).
 
 aa((X,Y),E):-
         NewX is X + 1,
