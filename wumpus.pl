@@ -36,32 +36,42 @@ guess(StateO,StateO,Guess):-
         write(Last),
         replace(Last,Target,FindGuess,Guess)
     ).    
-
-
+    
 updateState(State,[],_,State).
 updateState(State,_,[],State).
 updateState(StateO, [OneGuess|Guess], [OneFeedback|Feedback], State):-
-    getCurrentPosition(StateO,CurrentPosition),
-    getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
-    write("Position"),
-    write(PostPosition),
-    updateMap(PostPosition,OneFeedback,StateO,MapState),
-    write("Map"),
-    move(MapState,OneGuess,OneFeedback,MoveState),
-    write("Move"),
-    write(MoveState),
-    updateFact(PostPosition,OneGuess,OneFeedback),
-    updateState(MoveState,Guess,Feedback,State).
-
+    (
+        OneGuess = shoot
+        -> updateState(StateO,Guess,Feedback,State)
+        ;
+        write("Start UPdate"),
+        write(Guess),
+        write(Feedback),
+        write(StateO),
+        getCurrentPosition(StateO,CurrentPosition),
+        write("After Current position"),
+        getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
+        write("Position"),
+        write(PostPosition),
+        updateMap(PostPosition,OneFeedback,StateO,MapState),
+        write("Map"),
+        move(MapState,OneGuess,OneFeedback,MoveState),
+        write("Move"),
+        write(MoveState),
+        updateFact(PostPosition,OneGuess,OneFeedback),
+        write("AFter update Fact"),
+        updateState(MoveState,Guess,Feedback,State)
+    ).
+   
 move(StateO,OneGuess,OneFeedback,State):-
     (
-        (OneFeedback = "empty"; OneFeedback = "stench";OneFeedback = "smell";OneFeedback = "damp")
+        (OneFeedback = empty; OneFeedback = stench; OneFeedback = smell;OneFeedback = damp)
         -> getCurrentPosition(StateO,CurrentPosition),
         write(CurrentPosition),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
         write(PostPosition),
         updateCurrentPosition(PostPosition,StateO,State)
-        ; OneFeedback = "wumpus"
+        ; OneFeedback = wumpus
         -> getCurrentPosition(StateO,CurrentPosition),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
         updateTarget(PostPosition,StateO,State)
@@ -73,7 +83,7 @@ updateTarget(Target,[CurrentPosition,Map,Hist,_],[CurrentPosition,Map,Hist,Targe
 
 updateFact(CurrentPosition,Guess,OneFeedback):-
     (
-        (OneFeedback = "pit"; OneFeedback = "wall")
+        (OneFeedback = pit; OneFeedback = wall)
         ->deletePath(CurrentPosition)
         ;
         true
@@ -101,16 +111,16 @@ getTarget([CurrentPosition,Map,Hist,Target], Target).
 
 getPositionAfterFeedback(X-Y, Dir, PostPosition):-
     (
-        Dir = "east"
+        Dir = east
         -> NewX is X + 1,
         PostPosition = NewX-Y
-        ; Dir = "west"
+        ; Dir = west
         -> NewX is X - 1,
         PostPosition = NewX-Y
-        ; Dir = "north"
+        ; Dir = north
         -> NewY is Y - 1,
         PostPosition = X-NewY
-        ;Dir = "south"
+        ;Dir = south
         -> NewY is Y + 1,
         PostPosition = X-NewY
     ).
