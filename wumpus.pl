@@ -29,7 +29,7 @@ guess(StateO,StateO,Guess):-
     (
         Target = "empty"
         -> write("FOUNDDD"),
-        append(FindGuess, ["south","shot"],Guess)
+        append(FindGuess, ["south","shoot"],Guess)
         ;
         last(FindGuess,Last),
         write("Last"),
