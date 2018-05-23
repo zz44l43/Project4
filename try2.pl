@@ -1,7 +1,7 @@
 run(NR,NC,XS,YS,Guess):-
     initialState(NR,NC,XS,YS,Ss),
     write(Ss),
-    guess(Ss,Guess).
+    guess(Ss,Ss,Guess).
 
 initialState(NR,NC,XS,YS,State):-
     generate_edges(NR,NC,E),
@@ -10,14 +10,31 @@ initialState(NR,NC,XS,YS,State):-
     replace(XS-YS-"",XS-YS-"empty",Map,MapMarked),
     get_state_init(XS,YS,MapMarked,State).
 
-guess(StateO,Guess):-
+guess(StateO,StateO,Guess):-
     getNextSpot(StateO,Spot),
+    write("Spot"),
+    write(Spot),
     getCoordinate(Spot,Coordinate),
     write(Coordinate),
     write("      "),
     getCurrentPosition(StateO,C),
     write(C),
-    find(C,Coordinate,Guess).
+    find(C,Coordinate,Guess),
+    write(FindGuess),
+    getTarget(StateO,Target),
+    write("Targe!"),
+    write(Target),
+    (
+        Target = "empty"
+        -> write("FOUNDDD"),
+        Guess = FindGuess
+        ;
+        last(FindGuess,Last),
+        write("Last"),
+        write(Last),
+        replace(Last,Target,FindGuess,Guess)
+    ).    
+
 
 updateState(State,[],_,State).
 updateState(State,_,[],State).
@@ -78,6 +95,7 @@ deletePath(X-Y):-
         true
     ).
 
+getTarget([CurrentPosition,Map,Hist,Target], Target).
 
 getPositionAfterFeedback(X-Y, Dir, PostPosition):-
     (
@@ -108,12 +126,7 @@ getCoordinate(X-Y-S,X-Y).
 
 getCurrentPosition([C,Map,Hist,_],C).
 
-getNextSpot([C,Map,Hist,Target],Spot):-
-    (
-        Target = "empty"
-        -> first_elem(Map,Spot)
-        ; Spot = Target
-    )
+getNextSpot([C,Map,Hist,Target],Spot):-first_elem(Map,Spot).
 
 first_elem([],null).
 first_elem([X-Y-S|Other],Ele):-
@@ -125,7 +138,7 @@ first_elem([X-Y-S|Other],Ele):-
 
 get_state_init(XS,YS,Map,State):-
     Hist = [],
-    State = [XS-YS,Map,Hist,empty].
+    State = [XS-YS,Map,Hist,"empty"].
         
 get_map(R,O):-
     get_map(R,R,O),
