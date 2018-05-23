@@ -29,7 +29,7 @@ guess(StateO,StateO,Guess):-
     (
         Target = "empty"
         -> write("FOUNDDD"),
-        append(FindGuess, ["south","shoot"],Guess)
+        Guess = FindGuess
         ;
         last(FindGuess,Last),
         write("Last"),
@@ -259,7 +259,7 @@ generate_edges_point_west(X,Y,MinX,MaxX,MinY,MaxY,E):-
     (
         X > MinX
         -> NewX is X - 1,
-        E = (X-Y, "west", NewX-Y)
+        E = (X-Y, west, NewX-Y)
         ;
         E = ""
     ).
@@ -268,7 +268,7 @@ generate_edges_point_east(X,Y,MinX,MaxX,MinY,MaxY,E):-
     (
         X < MaxX
         -> NewX is X + 1,
-        E = (X-Y, "east", NewX-Y)
+        E = (X-Y, east, NewX-Y)
         ;
         E = ""
     ).
@@ -277,7 +277,7 @@ generate_edges_point_north(X,Y,MinX,MaxX,MinY,MaxY,E):-
     (
         Y > MinY
         -> NewY is Y - 1,
-        E = (X-Y, "north", X-NewY)
+        E = (X-Y, north, X-NewY)
         ;
         E = ""
     ).
@@ -286,7 +286,7 @@ generate_edges_point_south(X,Y,MinX,MaxX,MinY,MaxY,E):-
     (
         Y < MaxY
         -> NewY is Y + 1,
-        E = (X-Y, "south", X-NewY)
+        E = (X-Y, south, X-NewY)
         ;
         E = ""
     ).
