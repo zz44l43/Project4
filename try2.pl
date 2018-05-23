@@ -1,3 +1,8 @@
+run(NR,NC,XS,YS,Guess):-
+    initialState(NR,NC,XS,YS,Ss),
+    write(Ss),
+    guess(Ss,Guess).
+
 initialState(NR,NC,XS,YS,State):-
     generate_edges(NR,NC,E),
     insert_edges(E),
@@ -5,26 +10,122 @@ initialState(NR,NC,XS,YS,State):-
     replace(XS-YS-"",XS-YS-"empty",Map,MapMarked),
     get_state_init(XS,YS,MapMarked,State).
 
-guess(StateO,State,Guess):-
+guess(StateO,Guess):-
+    getNextSpot(StateO,Spot),
+    getCoordinate(Spot,Coordinate),
+    write(Coordinate),
+    write("      "),
+    getCurrentPosition(StateO,C),
+    write(C),
+    find(C,Coordinate,Guess).
+
+updateState(State,[],_,State).
+updateState(State,_,[],State).
+updateState(StateO, [OneGuess|Guess], [OneFeedback|Feedback], State):-
+    getCurrentPosition(StateO,CurrentPosition),
+    getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
+    write("Position"),
+    write(PostPosition),
+    updateMap(PostPosition,OneFeedback,StateO,MapState),
+    write("Map"),
+    move(MapState,OneGuess,OneFeedback,MoveState),
+    write("Move"),
+    write(MoveState),
+    updateFact(PostPosition,OneGuess,OneFeedback),
+    updateState(MoveState,Guess,Feedback,State).
+
+move(StateO,OneGuess,OneFeedback,State):-
+    (
+        (OneFeedback = "empty"; OneFeedback = "stench";OneFeedback = "smell";OneFeedback = "damp")
+        -> getCurrentPosition(StateO,CurrentPosition),
+        write(CurrentPosition),
+        getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
+        write(PostPosition),
+        updateCurrentPosition(PostPosition,StateO,State)
+        ; OneFeedback = "wumpus"
+        -> getCurrentPosition(StateO,CurrentPosition),
+        getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
+        updateTarget(PostPosition,StateO,State)
+        ;
+        State = StateO
+    ).
+
+updateTarget(Target,[CurrentPosition,Map,Hist,_],[CurrentPosition,Map,Hist,Target]).
+
+updateFact(CurrentPosition,Guess,OneFeedback):-
+    (
+        (OneFeedback = "pit"; OneFeedback = "wall")
+        ->deletePath(CurrentPosition)
+        ;
+        true
+    ).
+
+updateMap(Xs-Ys,Feedback, [CurrentPosition,MapO,Hist,Target], [CurrentPosition,Map,Hist,Target]):-    
+    replace(Xs-Ys-"",Xs-Ys-Feedback,MapO,Map).
+
+updateCurrentPosition(X-Y,[_,Map,Hist,Target],[X-Y,Map,Hist,Target]).
+
+deletePath(X-Y):-
+    (
+        edge(X-Y,_,_)
+        ->retract(edge(X-Y,_,_)),
+        deletePath(X-Y)
+        ;
+        edge(_,_,X-Y)
+        ->retract(edge(_,_,X-Y)),
+        deletePath(X-Y)
+        ;
+        true
+    ).
+
+
+getPositionAfterFeedback(X-Y, Dir, PostPosition):-
+    (
+        Dir = "east"
+        -> NewX is X + 1,
+        PostPosition = NewX-Y
+        ; Dir = "west"
+        -> NewX is X - 1,
+        PostPosition = NewX-Y
+        ; Dir = "north"
+        -> NewY is Y - 1,
+        PostPosition = X-NewY
+        ;Dir = "south"
+        -> NewY is Y + 1,
+        PostPosition = X-NewY
+    ).
 
 
 replace(_, _, [], []).
-replace(O, R, [O|T], [R|T2]) :- replace(O, R, T, T2).
-replace(O, R, [H|T], [H|T2]) :- H \= O, replace(O, R, T, T2).
+replace(O, R, [O|T], [R|T2]) :- 
+    write(R),
+    replace(O, R, T, T2).
+replace(O, R, [H|T], [H|T2]) :- 
+    H \= O, 
+    replace(O, R, T, T2).
+
+getCoordinate(X-Y-S,X-Y).
+
+getCurrentPosition([C,Map,Hist,_],C).
+
+getNextSpot([C,Map,Hist,Target],Spot):-
+    (
+        Target = "empty"
+        -> first_elem(Map,Spot)
+        ; Spot = Target
+    )
+
+first_elem([],null).
+first_elem([X-Y-S|Other],Ele):-
+    (
+        S = ""
+        -> Ele = X-Y-S
+        ;first_elem(Other,Ele)
+    ).
 
 get_state_init(XS,YS,Map,State):-
     Hist = [],
-    State = [Xs-YS,Map,Hist].
-
-get_Row(Row,C,O):-
-    (
-        C = 1
-        -> O = [(Row,0)]
-        ;
-        Cc is C - 1,
-        O = [(Row,Cc)|O1],
-        get_Row(Row,Cc,O1) 
-    ).
+    State = [XS-YS,Map,Hist,empty].
         
 get_map(R,O):-
     get_map(R,R,O),
@@ -60,8 +161,8 @@ find(Start, End, Path) :-
     %% find(Start, End, Previous, Path).
     %% find a simple Path from Start to End
     %% having visited Previous already
-    find(Start, Start, _Previous, []).
-    find(Start, End, Previous, [Dirn|Path]) :-
+find(Start, Start, _Previous, []).
+find(Start, End, Previous, [Dirn|Path]) :-
         edge(Start, Dirn, Med),
         \+ member(Med, Previous), % dont visit previous places
         find(Med, End, [Med|Previous], Path).
@@ -78,7 +179,8 @@ generate_edges(Row,Column,E):-
     getMaxX(Column,MaxX),
     getMinY(Row,MinY),
     getMaxY(Row,MaxY),
-    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E).
+    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E),
+    write(E).
     
 
 generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,RowCounter,E):-
