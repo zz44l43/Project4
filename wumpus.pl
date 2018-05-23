@@ -21,7 +21,7 @@ guess(StateO,StateO,Guess):-
     write("      "),
     getCurrentPosition(StateO,C),
     write(C),
-    find(C,Coordinate,Guess),
+    find(C,Coordinate,FindGuess),
     write(FindGuess),
     getTarget(StateO,Target),
     write("Targe!"),
