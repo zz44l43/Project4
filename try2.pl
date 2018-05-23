@@ -1,6 +1,41 @@
-generate_edges(X,Y,Dx,Dy,E).
+insert_edges(List)
 
-generate_edges_row(R,C,E).
+generate_edges(Row,Column,E):-
+    getMinX(Column,MinX),
+    getMaxX(Column,MaxX),
+    getMinY(Row,MinY),
+    getMaxY(Row,MaxY),
+    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E).
+    
+
+generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,RowCounter,E):-
+    (
+        RowCounter =< Row
+        -> generate_edges_row(RowCounter,Column,MinX,MaxX,MinY,MaxY,1,RowEdges), 
+        write(RowCounter),
+        write(RowEdges),
+        append(RowEdges,OtherEdges,E),
+        NewRowCounter is RowCounter + 1,
+        generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,NewRowCounter,OtherEdges)
+        ;
+        E=[]
+    ).
+
+generate_edges_row(Row,Column,MinX,MaxX,MinY,MaxY,ColumnCounter,E):-
+    (
+        ColumnCounter =< Column
+        -> CurrentX is ColumnCounter,
+        CurrentY is Row,
+        write(CurrentX),
+        write(CurrentY),
+        generate_edges_point(CurrentX,CurrentY,MinX,MaxX,MinY,MaxY,PointEdges),
+        append(PointEdges, OtherEdges, E),
+        NewColumnCounter is ColumnCounter + 1,
+        generate_edges_row(Row,Column,MinX,MaxX,MinY,MaxY,NewColumnCounter,OtherEdges)
+        ;
+        E = []
+    ).
+
 
 generate_edges_point(X,Y,MinX,MaxX,MinY,MaxY,E):-
     generate_edges_point_west(X,Y,MinX,MaxX,MinY,MaxY,WE),
@@ -13,6 +48,11 @@ generate_edges_point(X,Y,MinX,MaxX,MinY,MaxY,E):-
 test(O1,O2,O3,L):-
     L = [O1,O2,O3].
 
+getMinX(Column,1).
+getMaxX(Column,Column).
+
+getMinY(Row,1).
+getMaxY(Row,Row).
 
 removeEmpty([],[]).
 removeEmpty([X|Xs],E):-
