@@ -23,11 +23,6 @@ filter_long_list(A,In,Out):-
 filter_list(A, In, Out) :-
     exclude(is_member(A), In, Out).
 
-run(NR,NC,XS,YS,Guess):-
-    initialState(NR,NC,XS,YS,Ss),
-    write(Ss),
-    guess(Ss,Ss,Guess).
-
 every_second_one([],[]).
 every_second_one([Dir,Dir|Other],[Dir,Dir|OtherS]):-
     every_second_one(Other,OtherS).
@@ -45,29 +40,7 @@ initialState(NR,NC,XS,YS,State):-
 reset_current_position([XS,Map,Hist,Target,X-Y],State):-
     State = [X-Y,Map,Hist,Target,X-Y].
 
-find_path(StateO,State):-
-    getTarget(StateO,Target),
-    getNextSpot(StateO,Spot),
-    getCoordinate(Spot,Target,Coordinate),
-    getOrig(StateO,Orig),
-    getHist(StateO,Hist),
-    findall(FindGuess,find(Orig,Coordinate,FindGuess),AllGuess),
-    subtract(AllGuess, Hist, SubGuess),
-    filter_list([],SubGuess,FilteredGuess),
-    filter_list(shoot,FilteredGuess,FilteredGuess2),
-    filter_long_list(5,NewSecondFilteredGuess2,FilteredGuess3),
-    (
-        FilteredGuess3 = []
-        -> updateMap(Coordinate,wall,ResetState,UpdateMapState),
-        deletePath(Coordinate),
-        find_path(UpdateMapState,State)
-        :
-        State = StateO
-    ).
-
-
 guess(StateO,State,Guess):-
-    write("GUESSS"),
     reset_current_position(StateO,ResetState),
     getHist(ResetState,Hist),
     getTarget(ResetState,Target),
@@ -80,8 +53,9 @@ guess(StateO,State,Guess):-
     subtract(AllGuess, Hist, SubGuess),
     filter_list([],SubGuess,FilteredGuess),
     filter_list(shoot,FilteredGuess,FilteredGuess2),
+    filter_long_list(5,FilteredGuess2,FilteredGuess3),
     (
-        FilteredGuess2 = []
+        FilteredGuess3 = []
         -> updateMap(Coordinate,wall,ResetState,UpdateMapState),
         deletePath(Coordinate),
         getNextSpot(UpdateMapState,NewSpot),
@@ -90,31 +64,29 @@ guess(StateO,State,Guess):-
         subtract(NewAllGuess, Hist, NewSubGuess),
         filter_list([],NewSubGuess,NewFilteredGuess),
         filter_list(shoot,NewFilteredGuess,NewFilteredGuess2),
+        filter_long_list(4,NewFilteredGuess2,FilteredGuess3),
         (
-            NewFilteredGuess2 = []
-            -> updateMap(NewCoordinate,wall,ResetState,UpdateMapState),
+            FilteredGuess3 = []
+            -> updateMap(NewCoordinate,wall,UpdateMapState,SecondUpdateMapState),
             deletePath(NewCoordinate),
-            getNextSpot(UpdateMapState,NewSpot2),
-            getCoordinate(NewSpot2,Target,NewCoordinate2),
-            findall(NewFindGuess2,find(Orig,NewCoordinate2,NewFindGuess2),NewAllGuess2),
-            subtract(NewAllGuess2, Hist, NewSubGuess2),
-            filter_list([],NewSubGuess2,NewFilteredGuess2),
-            filter_list(shoot,NewSecondFilteredGuess,NewSecondFilteredGuess2),
-            filter_long_list(5,NewSecondFilteredGuess2,FilteredGuess3),
-
+            getNextSpot(SecondUpdateMapState,SecondNewSpot),
+            getCoordinate(SecondNewSpot,Target,SecondNewCoordinate),
+            findall(SecondNewFindGuess,find(Orig,SecondNewCoordinate,SecondNewFindGuess),SecondNewAllGuess),
+            subtract(SecondNewAllGuess, Hist,SecondNewSubGuess),
+            filter_list([],SecondNewSubGuess,SecondNewFilteredGuess),
+            filter_list(shoot,SecondNewFilteredGuess,SecondNewFilteredGuess2),
+            filter_long_list(8,NewFilteredGuess2,FilteredGuess3),
+            NewestState = SecondUpdateMapState
+            ;
+            NewestState = UpdateMapState
         )
-        filter_long_list(5,NewFilteredGuess2,FilteredGuess3),
-
-        NewestState = UpdateMapState
         ;
-        filter_long_list(5,FilteredGuess2,FilteredGuess3),
         NewestState = ResetState
     ),
     nl,
     (
         FilteredGuess3 = []
-        -> write("BREAKBREAKBREAKBREAKBREAKBREAKBREAK"),
-        write(FilteredGuess2),
+        ->
         (
             FilteredGuess2 = []
             -> nth0(0,NewFilteredGuess2,SelectedGuess)
@@ -122,15 +94,13 @@ guess(StateO,State,Guess):-
             nth0(0,FilteredGuess2,SelectedGuess)
         )
         ;
-        nth0(0,FilteredGuess3,SelectedGuess),
-        write("BREAKBREAKBREAKBREAKBREAKBREAKBREAK")
+        nth0(0,FilteredGuess3,SelectedGuess)
     ),
     
     getTarget(NewestState,Target),
     updateHist(NewestState,SelectedGuess,HistoryState),
     add_shoot(SelectedGuess,Guess),
-    State = HistoryState,
-    write("ENDDDDDDDDDDDDDD").
+    State = HistoryState.
 
 
 add_shoot([],[]).
@@ -143,25 +113,14 @@ updateState(State,_,[],State).
 updateState(StateO, [OneGuess|Guess], [OneFeedback|Feedback], State):-
     (
         OneGuess = shoot
-        -> write("SHOOOOOTT FOUD"),
+        -> 
         updateState(StateO,Guess,Feedback,State)
         ;
-        write("Start UPdate"),
-        write(StateO),
-        write([OneGuess|Guess]),
-        write([OneFeedback|Feedback]),
-        write("sdfs"),
         getCurrentPosition(StateO,CurrentPosition),
-        write(StateO),
-        write("finish Current position"),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
-        write("Start Update MAP"),
         updateMap(PostPosition,OneFeedback,StateO,MapState),
-        write("Finish Update MAP"),
         move(MapState,OneGuess,OneFeedback,MoveState),
-        write("Finish UPdate MOVE"),
         updateFact(PostPosition,OneGuess,OneFeedback),
-        write("AFter update Fact"),
         updateState(MoveState,Guess,Feedback,State)
     ).
    
@@ -173,11 +132,8 @@ move(StateO,OneGuess,OneFeedback,State):-
         updateCurrentPosition(PostPosition,StateO,State)
         ; OneFeedback = wumpus
         -> getCurrentPosition(StateO,CurrentPosition),
-        write("MOVE_AFTER CURRENT POSITION"),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
-        write("MOVE_AFTER FEEDBACK"),
-        updateTarget(PostPosition,StateO,State),
-        write("MOVE_FINISH UPDATE TARGET")
+        updateTarget(PostPosition,StateO,State)
         ;
         State = StateO
     ).
@@ -199,8 +155,6 @@ updateCurrentPosition(X-Y,[_,Map,Hist,Target,Orig],[X-Y,Map,Hist,Target,Orig]).
 
 updateHist([C,Map,Hist,Target,Orig],NewHist,State):-
     WholeHist = [NewHist|Hist],
-    write("UPDATTTTTTTTTTTn HISTORY"),
-    write(WholeHist),
     State = [C,Map,WholeHist,Target,Orig].
 
 deletePath(X-Y):-
@@ -239,7 +193,6 @@ getPositionAfterFeedback(X-Y, Dir, PostPosition):-
 
 replace(_, _, [], []).
 replace(O, R, [O|T], [R|T2]) :- 
-    write(R),
     replace(O, R, T, T2).
 replace(O, R, [H|T], [H|T2]) :- 
     H \= O, 
@@ -264,8 +217,6 @@ first_elem([X-Y-S|Other],Ele):-
     (
         S = ""
         -> 
-        write("REALL ELEMENT"),
-        write(X-Y-S),
         Ele = X-Y-S
         ;first_elem(Other,Ele)
     ).
@@ -324,9 +275,7 @@ generate_edges(Row,Column,E):-
     getMaxX(Column,MaxX),
     getMinY(Row,MinY),
     getMaxY(Row,MaxY),
-    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E),
-    write(E).
-    
+    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E).    
 
 generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,RowCounter,E):-
     (
