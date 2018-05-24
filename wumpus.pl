@@ -14,6 +14,12 @@ diffSet([H|T], Set, [H|Set2]) :-
 is_member(X, Y) :-
     member(X,Y).
 
+is_too_long(L,Xs):-
+    length(Xs,LengthList),
+    L < LengthList.
+filter_long_list(A,In,Out):-
+    exclude(is_too_long(A),In,Out).
+
 filter_list(A, In, Out) :-
     exclude(is_member(A), In, Out).
 
@@ -39,17 +45,31 @@ initialState(NR,NC,XS,YS,State):-
 reset_current_position([XS,Map,Hist,Target,X-Y],State):-
     State = [X-Y,Map,Hist,Target,X-Y].
 
+find_path(StateO,State):-
+    getTarget(StateO,Target),
+    getNextSpot(StateO,Spot),
+    getCoordinate(Spot,Target,Coordinate),
+    getOrig(StateO,Orig),
+    getHist(StateO,Hist),
+    findall(FindGuess,find(Orig,Coordinate,FindGuess),AllGuess),
+    subtract(AllGuess, Hist, SubGuess),
+    filter_list([],SubGuess,FilteredGuess),
+    filter_list(shoot,FilteredGuess,FilteredGuess2),
+    filter_long_list(5,NewSecondFilteredGuess2,FilteredGuess3),
+    (
+        FilteredGuess3 = []
+        -> updateMap(Coordinate,wall,ResetState,UpdateMapState),
+        deletePath(Coordinate),
+        find_path(UpdateMapState,State)
+        :
+        State = StateO
+    ).
+
+
 guess(StateO,State,Guess):-
     write("GUESSS"),
     reset_current_position(StateO,ResetState),
     getHist(ResetState,Hist),
-    length(Hist,L),
-    (
-        L > 1
-        -> nth0(0,Hist,LastGuess)
-        ;
-        LastGuess = []
-    ),
     getTarget(ResetState,Target),
     getNextSpot(ResetState,Spot),
     getCoordinate(Spot,Target,Coordinate),
@@ -59,11 +79,55 @@ guess(StateO,State,Guess):-
     nl(),
     subtract(AllGuess, Hist, SubGuess),
     filter_list([],SubGuess,FilteredGuess),
-    filter_list(shoot,SubGuess,FilteredGuess),
+    filter_list(shoot,FilteredGuess,FilteredGuess2),
+    (
+        FilteredGuess2 = []
+        -> updateMap(Coordinate,wall,ResetState,UpdateMapState),
+        deletePath(Coordinate),
+        getNextSpot(UpdateMapState,NewSpot),
+        getCoordinate(NewSpot,Target,NewCoordinate),
+        findall(NewFindGuess,find(Orig,NewCoordinate,NewFindGuess),NewAllGuess),
+        subtract(NewAllGuess, Hist, NewSubGuess),
+        filter_list([],NewSubGuess,NewFilteredGuess),
+        filter_list(shoot,NewFilteredGuess,NewFilteredGuess2),
+        (
+            NewFilteredGuess2 = []
+            -> updateMap(NewCoordinate,wall,ResetState,UpdateMapState),
+            deletePath(NewCoordinate),
+            getNextSpot(UpdateMapState,NewSpot2),
+            getCoordinate(NewSpot2,Target,NewCoordinate2),
+            findall(NewFindGuess2,find(Orig,NewCoordinate2,NewFindGuess2),NewAllGuess2),
+            subtract(NewAllGuess2, Hist, NewSubGuess2),
+            filter_list([],NewSubGuess2,NewFilteredGuess2),
+            filter_list(shoot,NewSecondFilteredGuess,NewSecondFilteredGuess2),
+            filter_long_list(5,NewSecondFilteredGuess2,FilteredGuess3),
+
+        )
+        filter_long_list(5,NewFilteredGuess2,FilteredGuess3),
+
+        NewestState = UpdateMapState
+        ;
+        filter_long_list(5,FilteredGuess2,FilteredGuess3),
+        NewestState = ResetState
+    ),
     nl,
-    nth0(2,FilteredGuess,SelectedGuess),
-    getTarget(ResetState,Target),
-    updateHist(ResetState,SelectedGuess,HistoryState),
+    (
+        FilteredGuess3 = []
+        -> write("BREAKBREAKBREAKBREAKBREAKBREAKBREAK"),
+        write(FilteredGuess2),
+        (
+            FilteredGuess2 = []
+            -> nth0(0,NewFilteredGuess2,SelectedGuess)
+            ;
+            nth0(0,FilteredGuess2,SelectedGuess)
+        )
+        ;
+        nth0(0,FilteredGuess3,SelectedGuess),
+        write("BREAKBREAKBREAKBREAKBREAKBREAKBREAK")
+    ),
+    
+    getTarget(NewestState,Target),
+    updateHist(NewestState,SelectedGuess,HistoryState),
     add_shoot(SelectedGuess,Guess),
     State = HistoryState,
     write("ENDDDDDDDDDDDDDD").
@@ -192,8 +256,6 @@ getCoordinate(X-Y-S,Target,Coordinate):-
 getCurrentPosition([C,Map,Hist,Target,Orig],C).
 
 getNextSpot([C,Map,Hist,Target,Orig],Spot):-
-    write("THIS IS SPOT"),
-    write(Map),
     first_elem(Map,Spot).
 
 first_elem([],null).
