@@ -1,74 +1,78 @@
 :- module(wumpus,[initialState/5, guess/3, updateState/4]).
 repl2(L, A, OutL):-reverse(L, [_|T]), reverse([A|T], OutL).
+diffSet([], X, X).
+
+diffSet([H|T1],Set,Z):-
+ member(H, Set),       % NOTE: arguments swapped!
+ !, delete(T1, H, T2), % avoid duplicates in first list
+ delete(Set, H, Set2), % remove duplicates in second list
+ diffSet(T2, Set2, Z).
+
+diffSet([H|T], Set, [H|Set2]) :-
+ diffSet(T,Set,Set2).
+
+is_member(X, Y) :-
+    member(X,Y).
+
+filter_list(A, In, Out) :-
+    exclude(is_member(A), In, Out).
 
 run(NR,NC,XS,YS,Guess):-
     initialState(NR,NC,XS,YS,Ss),
     write(Ss),
     guess(Ss,Ss,Guess).
 
+every_second_one([],[]).
+every_second_one([Dir,Dir|Other],[Dir,Dir|OtherS]):-
+    every_second_one(Other,OtherS).
+every_second_one([Dir,Dir2|Other],[Dir,Dir2,shoot,OtherS]):-
+    every_second_one([Dir2|Other],[Dir2|OtherS]).
+
+
 initialState(NR,NC,XS,YS,State):-
     generate_edges(NR,NC,E),
     insert_edges(E),
     get_map(NR,NC,Map),
     replace(XS-YS-"",XS-YS-empty,Map,MapMarked),
-    get_state_init(XS,YS,MapMarked,State).
+    State = [XS-YS,MapMarked,[],empty,XS-YS].
 
 reset_current_position([XS,Map,Hist,Target,X-Y],State):-
     State = [X-Y,Map,Hist,Target,X-Y].
 
 guess(StateO,State,Guess):-
-    nl,
-    reset_current_position(StateO,ResetState),
     write("GUESSS"),
-    getTarget(ResetState,Target),
+    reset_current_position(StateO,ResetState),
+    getHist(ResetState,Hist),
+    length(Hist,L),
     (
-        Target \= empty
-        -> getHist(ResetState,Hist),
-        write(Hist),
-        nth0(0,Hist,LastGuess),
-        write("NOT EMPTTY YYYYY"),
-        State = ResetState,
-        repl2(LastGuess,shoot,Guess)
+        L > 1
+        -> nth0(0,Hist,LastGuess)
         ;
-        getNextSpot(ResetState,Spot),
-        write("STAAAAAATE"),
-        write(ResetState),
-        getCoordinate(Spot,Coordinate),
-        write("COORDINATE"),
-        getOrig(ResetState,Orig),
-        write("ORIG"),
-        getHist(ResetState,Hist),
-        write(ResetState),
-        write("HISTTTORY"),
-        write(Hist),
-        findall(FindGuess,find(Orig,Coordinate,FindGuess),AllGuess),
-        (
-            member(Hist,AllGuess)
-            -> append(Hist,PotentialGuess,AllGuess),
-            write("MATCHHHCHCH"),
-            nth0(0,PotentialGuess,SelectedGuess)
-            ;
-            write("NONONOMATCHCHCH"),
-            nth0(0,AllGuess,SelectedGuess),
-            write("SEEEELECTEDDDD"),
-            write("FINALLLALALALAL")
-        ),
-        getTarget(ResetState,Target),
-        write(ResetState),
-        write("TRGGGGGGGET"),
-        write(Target),
-        (
-            Target = empty
-            -> write("FOUNDDD"),
-            updateHist(ResetState,SelectedGuess,State),
-            Guess = SelectedGuess
-            ;
-            last(Hist,Last),
-            write("Last"),
-            write(Last),
-            replace(Last,shoot,Hist,Guess)
-        )
-    ).
+        LastGuess = []
+    ),
+    getTarget(ResetState,Target),
+    getNextSpot(ResetState,Spot),
+    getCoordinate(Spot,Target,Coordinate),
+    getOrig(ResetState,Orig),
+    getHist(ResetState,Hist),
+    findall(FindGuess,find(Orig,Coordinate,FindGuess),AllGuess),
+    nl(),
+    subtract(AllGuess, Hist, SubGuess),
+    filter_list([],SubGuess,FilteredGuess),
+    filter_list(shoot,SubGuess,FilteredGuess),
+    nl,
+    nth0(2,FilteredGuess,SelectedGuess),
+    getTarget(ResetState,Target),
+    updateHist(ResetState,SelectedGuess,HistoryState),
+    add_shoot(SelectedGuess,Guess),
+    State = HistoryState,
+    write("ENDDDDDDDDDDDDDD").
+
+
+add_shoot([],[]).
+add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
+    add_shoot(OtherS,Other).
+
 
 updateState(State,[],_,State).
 updateState(State,_,[],State).
@@ -132,7 +136,7 @@ updateCurrentPosition(X-Y,[_,Map,Hist,Target,Orig],[X-Y,Map,Hist,Target,Orig]).
 updateHist([C,Map,Hist,Target,Orig],NewHist,State):-
     WholeHist = [NewHist|Hist],
     write("UPDATTTTTTTTTTTn HISTORY"),
-    write(C),
+    write(WholeHist),
     State = [C,Map,WholeHist,Target,Orig].
 
 deletePath(X-Y):-
@@ -177,7 +181,13 @@ replace(O, R, [H|T], [H|T2]) :-
     H \= O, 
     replace(O, R, T, T2).
 
-getCoordinate(X-Y-S,X-Y).
+getCoordinate(null,Target,Target).
+getCoordinate(X-Y-S,Target,Coordinate):-
+    (
+        Target = empty
+        -> Coordinate = X-Y
+        ; Coordinate = Target
+    ).
 
 getCurrentPosition([C,Map,Hist,Target,Orig],C).
 
@@ -188,6 +198,7 @@ getNextSpot([C,Map,Hist,Target,Orig],Spot):-
 
 first_elem([],null).
 first_elem([X-Y-S|Other],Ele):-
+
     (
         S = ""
         -> 
@@ -197,9 +208,7 @@ first_elem([X-Y-S|Other],Ele):-
         ;first_elem(Other,Ele)
     ).
 
-get_state_init(XS,YS,Map,State):-
-    Hist = [],
-    State = [XS-YS,Map,[],empty,XS-YS].
+get_state_init(XS,YS,Map,[XS-YS,Map,[],empty,XS-YS]).
         
 get_map(R,O):-
     get_map(R,R,O),
