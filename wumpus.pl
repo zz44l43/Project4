@@ -1,4 +1,5 @@
 :- module(wumpus,[initialState/5, guess/3, updateState/4]).
+repl2(L, A, OutL):-reverse(L, [_|T]), reverse([A|T], OutL).
 
 run(NR,NC,XS,YS,Guess):-
     initialState(NR,NC,XS,YS,Ss),
@@ -9,55 +10,88 @@ initialState(NR,NC,XS,YS,State):-
     generate_edges(NR,NC,E),
     insert_edges(E),
     get_map(NR,NC,Map),
-    replace(XS-YS-"",XS-YS-"empty",Map,MapMarked),
+    replace(XS-YS-"",XS-YS-empty,Map,MapMarked),
     get_state_init(XS,YS,MapMarked,State).
 
-guess(StateO,StateO,Guess):-
-    getNextSpot(StateO,Spot),
-    write("Spot"),
-    write(Spot),
-    getCoordinate(Spot,Coordinate),
-    write(Coordinate),
-    write("      "),
-    getCurrentPosition(StateO,C),
-    write(C),
-    find(C,Coordinate,FindGuess),
-    write(FindGuess),
-    getTarget(StateO,Target),
-    write("Targe!"),
-    write(Target),
+reset_current_position([XS,Map,Hist,Target,X-Y],State):-
+    State = [X-Y,Map,Hist,Target,X-Y].
+
+guess(StateO,State,Guess):-
+    nl,
+    reset_current_position(StateO,ResetState),
+    write("GUESSS"),
+    getTarget(ResetState,Target),
     (
-        Target = "empty"
-        -> write("FOUNDDD"),
-        Guess = FindGuess
+        Target \= empty
+        -> getHist(ResetState,Hist),
+        write(Hist),
+        nth0(0,Hist,LastGuess),
+        write("NOT EMPTTY YYYYY"),
+        State = ResetState,
+        repl2(LastGuess,shoot,Guess)
         ;
-        last(FindGuess,Last),
-        write("Last"),
-        write(Last),
-        replace(Last,Target,FindGuess,Guess)
-    ).    
-    
+        getNextSpot(ResetState,Spot),
+        write("STAAAAAATE"),
+        write(ResetState),
+        getCoordinate(Spot,Coordinate),
+        write("COORDINATE"),
+        getOrig(ResetState,Orig),
+        write("ORIG"),
+        getHist(ResetState,Hist),
+        write(ResetState),
+        write("HISTTTORY"),
+        write(Hist),
+        findall(FindGuess,find(Orig,Coordinate,FindGuess),AllGuess),
+        (
+            member(Hist,AllGuess)
+            -> append(Hist,PotentialGuess,AllGuess),
+            write("MATCHHHCHCH"),
+            nth0(0,PotentialGuess,SelectedGuess)
+            ;
+            write("NONONOMATCHCHCH"),
+            nth0(0,AllGuess,SelectedGuess),
+            write("SEEEELECTEDDDD"),
+            write("FINALLLALALALAL")
+        ),
+        getTarget(ResetState,Target),
+        write(ResetState),
+        write("TRGGGGGGGET"),
+        write(Target),
+        (
+            Target = empty
+            -> write("FOUNDDD"),
+            updateHist(ResetState,SelectedGuess,State),
+            Guess = SelectedGuess
+            ;
+            last(Hist,Last),
+            write("Last"),
+            write(Last),
+            replace(Last,shoot,Hist,Guess)
+        )
+    ).
+
 updateState(State,[],_,State).
 updateState(State,_,[],State).
 updateState(StateO, [OneGuess|Guess], [OneFeedback|Feedback], State):-
     (
         OneGuess = shoot
-        -> updateState(StateO,Guess,Feedback,State)
+        -> write("SHOOOOOTT FOUD"),
+        updateState(StateO,Guess,Feedback,State)
         ;
         write("Start UPdate"),
-        write(Guess),
-        write(Feedback),
         write(StateO),
+        write([OneGuess|Guess]),
+        write([OneFeedback|Feedback]),
+        write("sdfs"),
         getCurrentPosition(StateO,CurrentPosition),
-        write("After Current position"),
+        write(StateO),
+        write("finish Current position"),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
-        write("Position"),
-        write(PostPosition),
+        write("Start Update MAP"),
         updateMap(PostPosition,OneFeedback,StateO,MapState),
-        write("Map"),
+        write("Finish Update MAP"),
         move(MapState,OneGuess,OneFeedback,MoveState),
-        write("Move"),
-        write(MoveState),
+        write("Finish UPdate MOVE"),
         updateFact(PostPosition,OneGuess,OneFeedback),
         write("AFter update Fact"),
         updateState(MoveState,Guess,Feedback,State)
@@ -67,19 +101,20 @@ move(StateO,OneGuess,OneFeedback,State):-
     (
         (OneFeedback = empty; OneFeedback = stench; OneFeedback = smell;OneFeedback = damp)
         -> getCurrentPosition(StateO,CurrentPosition),
-        write(CurrentPosition),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
-        write(PostPosition),
         updateCurrentPosition(PostPosition,StateO,State)
         ; OneFeedback = wumpus
         -> getCurrentPosition(StateO,CurrentPosition),
+        write("MOVE_AFTER CURRENT POSITION"),
         getPositionAfterFeedback(CurrentPosition,OneGuess,PostPosition),
-        updateTarget(PostPosition,StateO,State)
+        write("MOVE_AFTER FEEDBACK"),
+        updateTarget(PostPosition,StateO,State),
+        write("MOVE_FINISH UPDATE TARGET")
         ;
         State = StateO
     ).
 
-updateTarget(Target,[CurrentPosition,Map,Hist,_],[CurrentPosition,Map,Hist,Target]).
+updateTarget(Target,[CurrentPosition,Map,Hist,TargetO,Orig],[CurrentPosition,Map,Hist,Target,Orig]).
 
 updateFact(CurrentPosition,Guess,OneFeedback):-
     (
@@ -89,10 +124,16 @@ updateFact(CurrentPosition,Guess,OneFeedback):-
         true
     ).
 
-updateMap(Xs-Ys,Feedback, [CurrentPosition,MapO,Hist,Target], [CurrentPosition,Map,Hist,Target]):-    
+updateMap(Xs-Ys,Feedback, [CurrentPosition,MapO,Hist,Target,Orig], [CurrentPosition,Map,Hist,Target,Orig]):-    
     replace(Xs-Ys-"",Xs-Ys-Feedback,MapO,Map).
 
-updateCurrentPosition(X-Y,[_,Map,Hist,Target],[X-Y,Map,Hist,Target]).
+updateCurrentPosition(X-Y,[_,Map,Hist,Target,Orig],[X-Y,Map,Hist,Target,Orig]).
+
+updateHist([C,Map,Hist,Target,Orig],NewHist,State):-
+    WholeHist = [NewHist|Hist],
+    write("UPDATTTTTTTTTTTn HISTORY"),
+    write(C),
+    State = [C,Map,WholeHist,Target,Orig].
 
 deletePath(X-Y):-
     (
@@ -107,7 +148,9 @@ deletePath(X-Y):-
         true
     ).
 
-getTarget([CurrentPosition,Map,Hist,Target], Target).
+getHist([CurrentPosition,Map,Hist,Target,Orig], Hist).
+getTarget([CurrentPosition,Map,Hist,Target,Orig], Target).
+getOrig([CurrentPosition,Map,Hist,Target,Orig], Orig).
 
 getPositionAfterFeedback(X-Y, Dir, PostPosition):-
     (
@@ -136,21 +179,27 @@ replace(O, R, [H|T], [H|T2]) :-
 
 getCoordinate(X-Y-S,X-Y).
 
-getCurrentPosition([C,Map,Hist,_],C).
+getCurrentPosition([C,Map,Hist,Target,Orig],C).
 
-getNextSpot([C,Map,Hist,Target],Spot):-first_elem(Map,Spot).
+getNextSpot([C,Map,Hist,Target,Orig],Spot):-
+    write("THIS IS SPOT"),
+    write(Map),
+    first_elem(Map,Spot).
 
 first_elem([],null).
 first_elem([X-Y-S|Other],Ele):-
     (
         S = ""
-        -> Ele = X-Y-S
+        -> 
+        write("REALL ELEMENT"),
+        write(X-Y-S),
+        Ele = X-Y-S
         ;first_elem(Other,Ele)
     ).
 
 get_state_init(XS,YS,Map,State):-
     Hist = [],
-    State = [XS-YS,Map,Hist,"empty"].
+    State = [XS-YS,Map,[],empty,XS-YS].
         
 get_map(R,O):-
     get_map(R,R,O),
