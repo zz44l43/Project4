@@ -10,7 +10,6 @@ initialState(NR,NC,XS,YS,State):-
 
 get_initial_state(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints)).
 
-
 is_search_mode(State):-
 	get_state_wumpus_point(State,WumpusPoint),
 	(
@@ -20,6 +19,105 @@ is_search_mode(State):-
 		false
 	).
 
+guess(StateO,State,Guess):-
+	(
+	is_search_mode(StateO)
+	->get_search_mode_next_point(StateO,StateSearch,SearchGuess)
+	;
+	get_state_wumpus_point_path(StateO,StateSearch,SearchGuess)
+	),
+	set_state_history(StateSearch,SearchGuess,State),
+	add_shoot(SearchGuess,Guess).
+
+get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
+	get_state_wumpus_point(StateO,WumpusPoint),
+	pick_path_point(StateO,WumpusPoint,SearchGuess).
+
+
+%To add shot to each of the instrunction so the robot will fire wildly.
+add_shoot([],[]).
+add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
+    add_shoot(OtherS,Other).
+
+get_search_mode_next_point(StateO,StateO,Guess):-
+	path_by_random(StateO,Guess).
+
+
+path_by_random(State,Path):-
+	pick_point(State,Point),
+	pick_path_point(State,Point,Path).
+
+pick_path_point(State,Point,Path):-
+	get_state_history(State,History),
+	get_state_initial_point(State,InitialPoint),
+    findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
+	subtract(AllPaths,History,NewPaths),
+	pick_distance(State,Distance),
+	get_mini_paths(Distance,MiniPaths),
+	filter_short_length_list(MiniPaths,NewPaths,NoShortPath),
+	sort_atoms_by_length(NoShortPath,SortedPath),
+	nth0(0,SortedPath,Path).
+
+sort_atoms_by_length(Atoms, ByLength) :-
+	map_list_to_pairs(length, Atoms, Pairs),
+	keysort(Pairs, Sorted),
+	pairs_values(Sorted, ByLength).
+
+get_mini_paths(Distance,MiniPaths):-
+	(
+		Distance > 0
+		-> MiniPaths is Distance + 1
+		;
+		MiniPaths is -1
+	).
+
+%is_too_long/2
+%check if a list is too short, super short path is not desired in this game.
+is_too_short(L,Xs):-
+    length(Xs,LengthList),
+    L >= LengthList.
+
+%filter_short_length_list/3
+%Filter out the list that is way too wrong by excluding them out of the list.
+filter_short_length_list(A,In,Out):-
+    exclude(is_too_short(A),In,Out).
+
+
+pick_point(State,Point):-
+	pick_distance(State,Distance),
+	(
+		Distance > 0
+		->pick_point_in_a_distance(State,Distance,Points)
+		;
+		pick_point_random(State, Points)
+	),
+	nth0(0,Points,Point).
+	
+pick_point_random(State, Points):-
+	get_state_map(State,Map),
+	get_map_points_by_feedback(Map,unknown,Points).
+
+pick_point_in_a_distance(State,Distance,Points):-
+	get_state_initial_point(State,InitialPoint),
+	get_point_distance_points(InitialPoint,Distance,State,Points).
+
+pick_distance(State,Distance):-
+	get_state_round(State,Round),
+	(
+		Round < 3
+		-> Distance = 2
+		;
+		Round < 6
+		-> Distance = 4
+		;
+		Round = -1
+	).
+
+get_state_round(State,Round):-
+	get_state_history(State,History),
+	length(History,Round).
+
+get_state_initial_point((_,_,InitialX-InitialY,_,_,_,_,_), InitialX-InitialY).
 get_state_row_number((NumberRow,_,_,_,_,_,_,_), NumberRow).
 get_state_column_number((_,NumberColumn,_,_,_,_,_,_), NumberColumn).
 get_state_initial_x((_,_,InitialX-_,_,_,_,_,_), InitialX).
@@ -29,6 +127,10 @@ get_state_history((_,_,_,_,History,_,_,_), History).
 get_state_wumpus_point((_,_,_,_,_,WumpusPoint,_,_), WumpusPoint).
 get_state_stench_point((_,_,_,_,_,_,StenchPoints,_), StenchPoints).
 get_state_stench_point((_,_,_,_,_,_,_,SmellPoints), SmellPoints).
+
+set_state_history(State,NewGuess,(_,_,_,_,NewHistory,_,_,_)):-
+	get_state_history(State,History),
+	NewHistory = [NewGuess | History].
 
 get_min_x(_,1).
 get_max_x((_,NumberColumn,_,_,_,_,_),NumberColumn).
@@ -108,7 +210,7 @@ combine_single_point(X,[Y|YPoints],[X-Y|Points]):-
 	combine_single_point(X,YPoints,Points).
 
 combine_single_point_map(_,[],[]).
-combine_single_point_map(X,[Y|YPoints],[X-Y-unkown|Points]):-
+combine_single_point_map(X,[Y|YPoints],[X-Y-unknown|Points]):-
 	combine_single_point_map(X,YPoints,Points).
 
 get_point_distance_points(X-Y,Distance,State,Points):-
@@ -243,6 +345,14 @@ find(Start, End, Previous, [Dirn|Path]) :-
         edge(Start, Dirn, Med),
         \+ member(Med, Previous), % dont visit previous places
         find(Med, End, [Med|Previous], Path).
+
+get_map_points_by_feedback([],_,[]).
+get_map_points_by_feedback([_-_-OtherFeedback|MapPoints],Feedback,Points):-
+	OtherFeedback \= Feedback,
+	get_map_points_by_feedback(MapPoints,Feedback,Points).
+get_map_points_by_feedback([X-Y-Feedback|MapPoints],Feedback,Points):-
+	Points = [X-Y-Feedback|OtherPoints],
+	get_map_points_by_feedback(MapPoints,Feedback,OtherPoints).
 
 
 %Get and initialized of map in the system.
