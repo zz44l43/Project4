@@ -5,10 +5,10 @@ initialState(NR,NC,XS,YS,State):-
 	nl(),
 	write(Map),
     replace(XS-YS-_,XS-YS-empty,Map,UpdatedMap),
-	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],State),
+	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],[],State),
 	write(State).
 
-get_initial_state(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints)).
+get_initial_state(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints)).
 
 
 is_search_mode(State):-
@@ -20,14 +20,15 @@ is_search_mode(State):-
 		false
 	).
 
-get_state_row_number((NumberRow,_,_,_,_,_,_), NumberRow).
-get_state_column_number((_,NumberColumn,_,_,_,_,_), NumberColumn).
-get_state_initial_x((_,_,InitialX-_,_,_,_,_), InitialX).
-get_state_initial_y((_,_,_-InitialY,_,_,_,_), InitialY).
-get_state_map((_,_,_,Map,_,_,_), Map).
-get_state_history((_,_,_,_,History,_,_), History).
-get_state_wumpus_point((_,_,_,_,_,WumpusPoint,_), WumpusPoint).
-get_state_stench_point((_,_,_,_,_,_,StenchPoints), StenchPoints).
+get_state_row_number((NumberRow,_,_,_,_,_,_,_), NumberRow).
+get_state_column_number((_,NumberColumn,_,_,_,_,_,_), NumberColumn).
+get_state_initial_x((_,_,InitialX-_,_,_,_,_,_), InitialX).
+get_state_initial_y((_,_,_-InitialY,_,_,_,_,_), InitialY).
+get_state_map((_,_,_,Map,_,_,_,_), Map).
+get_state_history((_,_,_,_,History,_,_,_), History).
+get_state_wumpus_point((_,_,_,_,_,WumpusPoint,_,_), WumpusPoint).
+get_state_stench_point((_,_,_,_,_,_,StenchPoints,_), StenchPoints).
+get_state_stench_point((_,_,_,_,_,_,_,SmellPoints), SmellPoints).
 
 get_min_x(_,1).
 get_max_x((_,NumberColumn,_,_,_,_,_),NumberColumn).
