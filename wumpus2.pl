@@ -8,18 +8,26 @@ initialState(NR,NC,XS,YS,State):-
 	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],State),
 	write(State).
 
-
 get_initial_state(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints)).
 
-get_state_row_number(NumberRow,_,_,_,_,_,_, NumberRow).
-get_state_column_number(_,NumberColumn,_,_,_,_,_, NumberColumn).
-get_state_initial_x(_,_,InitialX-_,_,_,_,_, InitialX).
-get_state_initial_y(_,_,_-InitialY,_,_,_,_, InitialY).
-get_state_map(_,_,_,Map,_,_,_, Map).
-get_state_history(_,_,_,_,History,_,_, History).
-get_state_wumpus_point(_,_,_,_,_,WumpusPoint,_, WumpusPoint).
-get_state_stench_point(_,_,_,_,_,_,StenchPoints, StenchPoints).
 
+is_search_mode(State):-
+	get_state_wumpus_point(State,WumpusPoint),
+	(
+		WumpusPoint = empty
+		-> true
+		;
+		false
+	).
+
+get_state_row_number((NumberRow,_,_,_,_,_,_), NumberRow).
+get_state_column_number((_,NumberColumn,_,_,_,_,_), NumberColumn).
+get_state_initial_x((_,_,InitialX-_,_,_,_,_), InitialX).
+get_state_initial_y((_,_,_-InitialY,_,_,_,_), InitialY).
+get_state_map((_,_,_,Map,_,_,_), Map).
+get_state_history((_,_,_,_,History,_,_), History).
+get_state_wumpus_point((_,_,_,_,_,WumpusPoint,_), WumpusPoint).
+get_state_stench_point((_,_,_,_,_,_,StenchPoints), StenchPoints).
 
 get_min_x(_,1).
 get_max_x((_,NumberColumn,_,_,_,_,_),NumberColumn).
@@ -222,6 +230,19 @@ generate_edges_point_south(X,Y,MaxY,E):-
         ;
         E = empty
     ).
+
+%% find a simple Path from Start to End
+find(Start, End, Path) :-
+        find(Start, End, [Start], Path).
+    %% find(Start, End, Previous, Path).
+    %% find a simple Path from Start to End
+    %% having visited Previous already
+find(Start, Start, _Previous, []).
+find(Start, End, Previous, [Dirn|Path]) :-
+        edge(Start, Dirn, Med),
+        \+ member(Med, Previous), % dont visit previous places
+        find(Med, End, [Med|Previous], Path).
+
 
 %Get and initialized of map in the system.
 get_map(NumberRow,NumberColumn,Map):-
