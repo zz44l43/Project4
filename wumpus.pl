@@ -51,20 +51,15 @@ points_intersections(Points,[OtherPoints|RestPoints],FinalPoints):-
 
 smell_intersction(State,Points):-
     get_state_smell_point(State,SmellPoints),
-    write(SmellPoints),
     get_manhattan_points_smell(State,SmellPoints,ManhanttanPoints),
-    write(ManhanttanPoints),
     nth0(0,ManhanttanPoints,FirstPoint),
-    points_intersections(FirstPoint,ManhanttanPoints,Points),
-    write(Points).
+    points_intersections(FirstPoint,ManhanttanPoints,Points).
 
 guess(StateO,State,Guess):-
     nl(),
     write("New ROUND OF GUESS, ROUND is "),
     get_state_round(StateO,Round),
     write(Round),
-    nl(),
-    write(StateO),
     get_search_mode(State,SearchMode),
 	(
         is_search_mode(StateO)
@@ -102,7 +97,6 @@ updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,stench,MapState),
 	set_state_stench(MapState,PostPosition,StenchState),
-	write(StenchState),
 	updateState(StenchState,Guess,Feedback,PostPosition,State).
 	
 updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
@@ -111,7 +105,6 @@ updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,smell,MapState),
 	set_state_smell(MapState,PostPosition,SmellState),
-	write(SmellState),
 	updateState(SmellState,Guess,Feedback,PostPosition,State).
 
 updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
@@ -119,7 +112,6 @@ updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
 	write("EMPTY STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,empty,MapState),
-	write(MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
 
@@ -128,7 +120,6 @@ updateState(StateO,[Dir|Guess], [damp|Feedback], X-Y, State):-
 	write("DAMP STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,damp,MapState),
-	write(MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
 
@@ -138,7 +129,6 @@ updateState(StateO,[Dir|Guess], [wall|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,wall,MapState),
 	delete_edges(PostPosition),
-	write(MapState),
 	updateState(MapState,Guess,Feedback,X-Y,State).
 
 updateState(StateO,[Dir|Guess], [pit|Feedback], X-Y, State):-
@@ -147,7 +137,6 @@ updateState(StateO,[Dir|Guess], [pit|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,pit,MapState),
 	delete_edges(PostPosition),
-	write(MapState),
 	updateState(MapState,Guess,Feedback,X-Y,State).
 
 
@@ -157,14 +146,11 @@ updateState(StateO,[Dir|Guess], [wumpus|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,empty,MapState),
 	set_state_wumpus(MapState,PostPosition,WumpusState),
-	write(WumpusState),
 	updateState(WumpusState,Guess,Feedback,PostPosition,State).
 
 updateMap(State,X-Y,Feedback,ReplacedState):-
 	get_state_map(State,MapO),
-    write("START REPLACING MAP"),
     replace(X-Y-_,X-Y-Feedback,MapO,Map),
-    write("START SETTING MAP"),
 	set_state_map(State,Map,ReplacedState).
 
 getPositionAfterFeedback(X-Y, Dir, PostPosition):-
@@ -203,15 +189,15 @@ get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
 	get_state_initial_point(State,InitialPoint),
     findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
-    write(AllPaths),
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,Path):-
+    get_search_mode(State,Mode),
     (
-        get_search_mode = stench
-        -> pick_stench_point(State,Point),
-        write("STENCH MODE PICKING"),
-        wriete(Point)
+        Mode = smell
+        -> pick_smell_point(State,Point),
+        write("SMELL MODE PICKING"),
+        write(Point)
         ;
         pick_point(State,Point),
         write("NORMAL MODE PICKING")
@@ -220,11 +206,9 @@ path_by_random(State,Path):-
     write("POINT GOT PICKED IS "),
     write(Point),
     get_all_path_point(State,Point,NewPaths),
-    write("FINISH SUBTRACT"),
     (
         NewPaths = []
         -> updateMap(State,Point,wall,UpdatedState),
-        write("FINISH UPDATE MAP"),
         delete_edges(Point),
         path_by_random(UpdatedState,Path)
         ;
@@ -277,14 +261,12 @@ filter_short_length_list(A,In,Out):-
     exclude(is_too_short(A),In,Out).
 
 
-pick_stench_point(State,Point):-
+pick_smell_point(State,Point):-
     smell_intersction(State,IntersectedPoints),
     get_state_map(State,Map),
     pick_valid_points(IntersectedPoints,Map,Points),
     removeEmpty(Points,NonEmptyPoints),
-    nth0(0,NonEmptyPoints,Point),
-    write("FINISH PICKING A SMELL POINT"),
-    write(Point).
+    nth0(0,NonEmptyPoints,Point).
 
 pick_point(State,Point):-
     nl(),
