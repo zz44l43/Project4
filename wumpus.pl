@@ -190,10 +190,13 @@ get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
     write("WUMPUS IS "),
     write(WumpusPoint),
     get_all_path_point(StateO,WumpusPoint,NewPaths),
-    nl(),
-    write("PATH ISSSSSS"),
-    write(NewPaths),
-	pick_path_point(StateO,NewPaths,SearchGuess).
+    (
+        NewPaths = []
+        -> path_by_random(StateO,RandomPath),
+        pick_path_point(StateO,RandomPath,SearchGuess)
+        ;pick_path_point(StateO,NewPaths,SearchGuess)
+
+    ).
 
 
 %To add shot to each of the instrunction so the robot will fire wildly.
@@ -203,20 +206,6 @@ add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
 
 get_search_mode_next_point(StateO,StateO,Guess):-
 	path_by_random(StateO,Guess).
-
-get_all_path_point_no_restriction(State,Point,NewPaths):-
-    get_state_history(State,History),
-	get_state_initial_point(State,InitialPoint),
-    findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
-    length(AllPaths,PathLengths),
-    write(PathLengths),
-    nth0(0,AllPaths,SinglePath),
-    (
-        PathLengths = 1, SinglePath \= north
-        -> findall(FindPath,find_no_restriction(InitialPoint,Point,FindPath),AllPathsNoRestriction)
-        ;
-        NewPaths = SubtractPaths
-    ).
 
 get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
@@ -639,8 +628,6 @@ insert_edges([(From,Dir,To)|List]):-
     assert(edge(From,Dir,To)),
 	write(edge(From,Dir,To)),
     insert_edges(List).
-print:-
- forall(fact(P), writeln(P)).
 
 delete_edges(X-Y):-
     (
