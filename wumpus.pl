@@ -288,7 +288,7 @@ get_mini_paths(Distance,MiniPaths):-
 %check if a list is too short, super short path is not desired in this game.
 is_too_short(L,Xs):-
     nl(),
-    write("STARTING FILTERING TOO SHORT ONES")
+    write("STARTING FILTERING TOO SHORT ONES"),
     write(XS),
     length(Xs,LengthList),
     L >= LengthList.
