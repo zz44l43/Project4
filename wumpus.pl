@@ -251,8 +251,11 @@ pick_path_point(State,NewPaths,Path):-
     write("MINI PATH IS "),
     write(MiniPaths),
     nl(),
-	filter_short_length_lists(MiniPaths,NewPaths,NoShortPath),
-	sort_atoms_by_length(NoShortPath,SortedPath),
+    filter_short_length_lists(MiniPaths,NewPaths,NoShortPath),
+    write("NO SHORT PATH"),
+    write(NoShortPath),
+    sort_atoms_by_length(NoShortPath,SortedPath),
+    write("AFTER SORT!"),
 	nth0(0,SortedPath,Path).
 
 filter_short_length_lists(MiniPaths, AllPaths, FilteredPath):-
