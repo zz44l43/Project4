@@ -256,7 +256,9 @@ pick_path_point(State,NewPaths,Path):-
     write(NoShortPath),
     sort_atoms_by_length(NoShortPath,SortedPath),
     write("AFTER SORT!"),
-	nth0(0,SortedPath,Path).
+    nth0(0,SortedPath,Path),
+    write("PICKED PATH!"),
+    write(Path).
 
 filter_short_length_lists(MiniPaths, AllPaths, FilteredPath):-
     filter_short_length_list(MiniPaths,AllPaths,NoShortPath),
