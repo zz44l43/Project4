@@ -114,7 +114,9 @@ updateState(StateO,[Dir|Guess], [wumpus|Feedback], X-Y, State):-
 
 updateMap(State,X-Y,Feedback,ReplacedState):-
 	get_state_map(State,MapO),
+    write("START REPLACING MAP"),
     replace(X-Y-_,X-Y-Feedback,MapO,Map),
+    write("START SETTING MAP"),
 	set_state_map(State,Map,ReplacedState).
 
 getPositionAfterFeedback(X-Y, Dir, PostPosition):-
@@ -134,8 +136,11 @@ getPositionAfterFeedback(X-Y, Dir, PostPosition):-
     ).
 
 get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
+    nl(),
+    write("WUMPUS MODE"),
 	get_state_wumpus_point(StateO,WumpusPoint),
-	pick_path_point(StateO,WumpusPoint,SearchGuess).
+    get_all_path_point(StateO,WumpusPoint,NewPaths),
+	pick_path_point(StateO,NewPaths,SearchGuess).
 
 
 %To add shot to each of the instrunction so the robot will fire wildly.
@@ -146,24 +151,24 @@ add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
 get_search_mode_next_point(StateO,StateO,Guess):-
 	path_by_random(StateO,Guess).
 
+get_all_path_point(State,Point,NewPaths):-
+    get_state_history(State,History),
+	get_state_initial_point(State,InitialPoint),
+    findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
+	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,Path):-
 	pick_point(State,Point),
     nl(),
     write("POINT GOT PICKED IS "),
     write(Point),
-    get_state_history(State,History),
-	get_state_initial_point(State,InitialPoint),
-    findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
-    write("FINISH FIND ALL THE PATHS"),
-    write(AllPaths),
-	subtract(AllPaths,History,NewPaths),
+    get_all_path_point(State,Point,NewPaths),
     write("FINISH SUBTRACT"),
     (
         NewPaths = []
         -> updateMap(State,Point,wall,UpdatedState),
+        write("FINISH UPDATE MAP"),
         delete_edges(Point),
-        write(UpdatedState),
         path_by_random(UpdatedState,Path)
         ;
         pick_path_point(UpdatedState,NewPaths,Path)
@@ -177,11 +182,7 @@ pick_path_point(State,NewPaths,Path):-
     write("MINI PATH IS "),
     write(MiniPaths),
     nl(),
-    write("NEW PATH IS"),
-    write(NewPaths),
 	filter_short_length_lists(MiniPaths,NewPaths,NoShortPath),
-    write("NO SHORT PATH"),
-    write(NoShortPath),
 	sort_atoms_by_length(NoShortPath,SortedPath),
 	nth0(0,SortedPath,Path).
 
@@ -228,23 +229,33 @@ pick_point(State,Point):-
     write(Distance),
 	(
 		Distance > 0
-		->pick_point_in_a_distance(State,Distance,Points)
+		->pick_point_in_a_distance(State,Distance,DistancePoints),
+        get_state_map(State,Map),
+        pick_valid_points(DistancePoints,Map,Points)
 		;
 		pick_point_random(State, Points)
 	),
     nl(),
     write(Points),
-	nth0(0,Points,Point),
+    removeEmpty(Points,NonEmptyPoints),
+	nth0(0,NonEmptyPoints,Point),
     write("FINISH PICKING A POINT").
 
-get_map_from_points([],[],[]).
-get_map_from_points(_,[],[]).
-get_map_from_points([X-Y|Points],[Xx-Yy-_|Map],Other):-
-    X \= Xx,
-    get_map_from_points([X-Y|Points], [Xx-Yy-_|Map],Other).
-get_map_from_points([X-Y|Points],[X-Y-unknown|Map],[X-Y|OtherPoints]):-
-    get_map_from_points(Points,Map,OtherPoints).
 
+pick_valid_point(_,[],empty).
+pick_valid_point(X-Y,[Xx-Yy-Status|MapPoints],Point):-
+    (
+        X = Xx, Y = Yy, Status = unknown
+        ->Point = X-Y
+        ;
+        pick_valid_point(X-Y,MapPoints,Point)
+    ).
+
+pick_valid_points([],_,[]).
+pick_valid_points([Point|Points],Map,ValidPoints):-
+    pick_valid_point(Point,Map,ValidPoint),
+    ValidPoints = [ValidPoint|OtherPoints],
+    pick_valid_points(Points,Map,OtherPoints).
 
 pick_point_random(State, Points):-
     nl(),
