@@ -190,6 +190,13 @@ updateState(StateO, [OneGuess|Guess], [OneFeedback|Feedback], State):-
         updateFact(PostPosition,OneGuess,OneFeedback),
         updateState(MoveState,Guess,Feedback,State)
     ).
+
+updateState(StateO,[shoot|Guess], [OneFeedback|Feedback], X-Y, State):-
+    updateState(StateO,Guess, Feedback, X-Y, State).
+
+updateState(StateO,[empty|Guess], [OneFeedback|Feedback], X-Y, State):-
+    
+
 % monitor the movement of the robot with 1 single instrunction and feedback.
 % depend on the feedback, if the feedback indicates that the movement is safe such as empty, stench ,smell or damp.
 % If the feedback of the instruction point is regard to wumpus that represents a lots and we will be clear on our goal and misisons.

@@ -27,7 +27,99 @@ guess(StateO,State,Guess):-
 	get_state_wumpus_point_path(StateO,StateSearch,SearchGuess)
 	),
 	set_state_history(StateSearch,SearchGuess,State),
-	add_shoot(SearchGuess,Guess).
+	add_shoot(SearchGuess,Guess),
+	nl(),
+	write("State is "),
+	write(State),
+	nl(),
+	write("Guess is "),
+	write(Guess).
+	
+updateState(StateO, Guess, Feedback, State):-
+	get_state_initial_point(StateO,InitialPoint),
+	updateState(StateO,Guess,Feedback,InitialPoint,State).
+
+updateState(State,[],[],_,State).
+
+updateState(StateO,[shoot|Guess], [_|Feedback], X-Y, State):-
+	nl(),
+	write("SHOOT STATE UPDATE"),
+    updateState(StateO,Guess, Feedback, X-Y, State).
+
+updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
+	nl(),
+	write("STENCH STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,stench,MapState),
+	set_state_stench(MapState,PostPosition,StenchState),
+	write(StenchState),
+	updateState(StenchState,Guess,Feedback,PostPosition,State).
+	
+updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
+	nl(),
+	write("SMELL STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,smell,MapState),
+	set_state_smell(MapState,PostPosition,SmellState),
+	write(SmellState),
+	updateState(SmellState,Guess,Feedback,PostPosition,State).
+
+updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
+	nl(),
+	write("EMPTY STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,empty,MapState),
+	write(MapState),
+	updateState(MapState,Guess,Feedback,PostPosition,State).
+
+updateState(StateO,[Dir|Guess], [wall|Feedback], X-Y, State):-
+	nl(),
+	write("WALL STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,wall,MapState),
+	delete_edges(PostPosition),
+	write(MapState),
+	updateState(MapState,Guess,Feedback,X-Y,State).
+
+updateState(StateO,[Dir|Guess], [pit|Feedback], X-Y, State):-
+	nl(),
+	write("PIT STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,pit,MapState),
+	delete_edges(PostPosition),
+	write(MapState),
+	updateState(MapState,Guess,Feedback,X-Y,State).
+
+
+updateState(StateO,[Dir|Guess], [wumpus|Feedback], X-Y, State):-
+	nl(),
+	write("WUMPUS STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,empty,MapState),
+	set_state_wumpus(MapState,PostPosition,WumpusState),
+	write(WumpusState),
+	updateState(WumpusState,Guess,Feedback,PostPosition,State).
+
+updateMap(State,X-Y,Feedback,ReplacedState):-
+	get_state_map(State,MapO),
+    replace(X-Y-_,X-Y-Feedback,MapO,Map),
+	set_state_map(State,Map,ReplacedState).
+
+getPositionAfterFeedback(X-Y, Dir, PostPosition):-
+    (
+        Dir = east
+        -> NewX is X + 1,
+        PostPosition = NewX-Y
+        ; Dir = west
+        -> NewX is X - 1,
+        PostPosition = NewX-Y
+        ; Dir = north
+        -> NewY is Y - 1,
+        PostPosition = X-NewY
+        ;Dir = south
+        -> NewY is Y + 1,
+        PostPosition = X-NewY
+    ).
 
 get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
 	get_state_wumpus_point(StateO,WumpusPoint),
@@ -128,9 +220,11 @@ get_state_wumpus_point((_,_,_,_,_,WumpusPoint,_,_), WumpusPoint).
 get_state_stench_point((_,_,_,_,_,_,StenchPoints,_), StenchPoints).
 get_state_stench_point((_,_,_,_,_,_,_,SmellPoints), SmellPoints).
 
-set_state_history(State,NewGuess,(_,_,_,_,NewHistory,_,_,_)):-
-	get_state_history(State,History),
-	NewHistory = [NewGuess | History].
+set_state_history((NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints),NewGuess,(NumberRow,NumberColumn,InitialX-InitialY,Map,[NewGuess | History],WumpusPoint,StenchPoints,SmellPoints)).
+set_state_map((NumberRow,NumberColumn,InitialX-InitialY,_,History,WumpusPoint,StenchPoints,SmellPoints),NewMap,(NumberRow,NumberColumn,InitialX-InitialY,NewMap,History,WumpusPoint,StenchPoints,SmellPoints)).
+set_state_wumpus((NumberRow,NumberColumn,InitialX-InitialY,Map,History,_,StenchPoints,SmellPoints),WumpusPoint,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints)).
+set_state_stench((NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints),NewStenchPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,[NewStenchPoints|StenchPoints],SmellPoints)).
+set_state_smell((NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints),NewSmellPoint,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,[NewSmellPoint|SmellPoints])).
 
 get_min_x(_,1).
 get_max_x((_,NumberColumn,_,_,_,_,_),NumberColumn).
@@ -367,6 +461,19 @@ insert_edges([(From,Dir,To)|List]):-
     assert(edge(From,Dir,To)),
 	write(edge(From,Dir,To)),
     insert_edges(List).
+
+delete_edges(X-Y):-
+    (
+        edge(X-Y,_,_)
+        ->retract(edge(X-Y,_,_)),
+        delete_edges(X-Y)
+        ;
+        edge(_,_,X-Y)
+        ->retract(edge(_,_,X-Y)),
+        delete_edges(X-Y)
+        ;
+        true
+    ).
 
 removeEmpty([],[]).
 removeEmpty([X|Xs],E):-
