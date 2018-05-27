@@ -21,6 +21,43 @@ is_search_mode(State):-
 		false
 	).
 
+get_search_mode(State,SearchMode):-
+    get_state_wumpus_point(State,WumpusPoint),
+    get_state_smell_point(State,SmellPoints),
+    get_state_stench_point(State,StenchPoints),
+	(
+		WumpusPoint \= empty
+		-> SearchMode = wumpus
+		;
+        SmellPoints \= []
+        -> SearchMode = smell
+        ;
+        StenchPoints \= []
+        -> SearchMode = stench
+        ;
+        SearchMode = none
+	).
+
+get_manhattan_points_smell(_,[],[]).
+get_manhattan_points_smell(State,[SmellPoint|SmellPoints],ManhattanPoints):-
+    get_manhattan_points(SmellPoint,3,State,ManhattanPointsForOnePoint),
+    ManhattanPoints = [ManhattanPointsForOnePoint|OtherManhattanPoints],
+    get_manhattan_points_smell(State,SmellPoints,OtherManhattanPoints).
+
+points_intersections(Points,[],Points).
+points_intersections(Points,[OtherPoints|RestPoints],FinalPoints):-
+    intersection(Points,OtherPoints,CurrentIntersctions),
+    points_intersections(CurrentIntersctions,RestPoints,FinalPoints).
+
+smell_intersction(State,Points):-
+    get_state_smell_point(State,SmellPoints),
+    write(SmellPoints),
+    get_manhattan_points_smell(State,SmellPoints,ManhanttanPoints),
+    write(ManhanttanPoints),
+    nth0(0,ManhanttanPoints,FirstPoint),
+    points_intersections(FirstPoint,ManhanttanPoints,Points),
+    write(Points).
+
 guess(StateO,State,Guess):-
     nl(),
     write("New ROUND OF GUESS, ROUND is "),
@@ -28,11 +65,12 @@ guess(StateO,State,Guess):-
     write(Round),
     nl(),
     write(StateO),
+    get_search_mode(State,SearchMode),
 	(
-	is_search_mode(StateO)
-	->get_search_mode_next_point(StateO,StateSearch,SearchGuess)
-	;
-	get_state_wumpus_point_path(StateO,StateSearch,SearchGuess)
+        is_search_mode(StateO)
+        -> get_search_mode_next_point(StateO,StateSearch,SearchGuess)
+        ;
+        get_state_wumpus_point_path(StateO,StateSearch,SearchGuess)
 	),
 	set_state_history(StateSearch,SearchGuess,State),
 	add_shoot(SearchGuess,Guess),
@@ -169,7 +207,15 @@ get_all_path_point(State,Point,NewPaths):-
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,Path):-
-	pick_point(State,Point),
+    (
+        get_search_mode = stench
+        -> pick_stench_point(State,Point),
+        write("STENCH MODE PICKING"),
+        wriete(Point)
+        ;
+        pick_point(State,Point),
+        write("NORMAL MODE PICKING")
+    ),
     nl(),
     write("POINT GOT PICKED IS "),
     write(Point),
@@ -230,6 +276,15 @@ is_too_short(L,Xs):-
 filter_short_length_list(A,In,Out):-
     exclude(is_too_short(A),In,Out).
 
+
+pick_stench_point(State,Point):-
+    smell_intersction(State,IntersectedPoints),
+    get_state_map(State,Map),
+    pick_valid_points(IntersectedPoints,Map,Points),
+    removeEmpty(Points,NonEmptyPoints),
+    nth0(0,NonEmptyPoints,Point),
+    write("FINISH PICKING A SMELL POINT"),
+    write(Point).
 
 pick_point(State,Point):-
     nl(),
@@ -303,7 +358,7 @@ get_state_map((_,_,_,Map,_,_,_,_), Map).
 get_state_history((_,_,_,_,History,_,_,_), History).
 get_state_wumpus_point((_,_,_,_,_,WumpusPoint,_,_), WumpusPoint).
 get_state_stench_point((_,_,_,_,_,_,StenchPoints,_), StenchPoints).
-get_state_stench_point((_,_,_,_,_,_,_,SmellPoints), SmellPoints).
+get_state_smell_point((_,_,_,_,_,_,_,SmellPoints), SmellPoints).
 
 set_state_history((NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints),NewGuess,(NumberRow,NumberColumn,InitialX-InitialY,Map,[NewGuess | History],WumpusPoint,StenchPoints,SmellPoints)).
 set_state_map((NumberRow,NumberColumn,InitialX-InitialY,_,History,WumpusPoint,StenchPoints,SmellPoints),NewMap,(NumberRow,NumberColumn,InitialX-InitialY,NewMap,History,WumpusPoint,StenchPoints,SmellPoints)).
