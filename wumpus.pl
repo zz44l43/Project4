@@ -84,6 +84,16 @@ updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
 	write(MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
+
+updateState(StateO,[Dir|Guess], [damp|Feedback], X-Y, State):-
+	nl(),
+	write("DAMP STATE UPDATE"),
+	getPositionAfterFeedback(X-Y, Dir,PostPosition),
+	updateMap(StateO,PostPosition,damp,MapState),
+	write(MapState),
+	updateState(MapState,Guess,Feedback,PostPosition,State).
+
+
 updateState(StateO,[Dir|Guess], [wall|Feedback], X-Y, State):-
 	nl(),
 	write("WALL STATE UPDATE"),
@@ -155,6 +165,7 @@ get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
 	get_state_initial_point(State,InitialPoint),
     findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
+    write(AllPaths),
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,Path):-
@@ -236,10 +247,10 @@ pick_point(State,Point):-
 		pick_point_random(State, Points)
 	),
     nl(),
-    write(Points),
     removeEmpty(Points,NonEmptyPoints),
 	nth0(0,NonEmptyPoints,Point),
-    write("FINISH PICKING A POINT").
+    write("FINISH PICKING A POINT"),
+    write(Point).
 
 
 pick_valid_point(_,[],empty).
@@ -430,8 +441,7 @@ generate_edges(Row,Column,E):-
     getMaxX(Column,MaxX),
     getMinY(Row,MinY),
     getMaxY(Row,MaxY),
-    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E),
-	write(E).    
+    generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,1,E).  
 
 generate_edges(Row,Column,MinX,MaxX,MinY,MaxY,RowCounter,E):-
     (
@@ -512,6 +522,8 @@ find(Start, Start, _Previous, []).
 find(Start, End, Previous, [Dirn|Path]) :-
         edge(Start, Dirn, Med),
         \+ member(Med, Previous), % dont visit previous places
+        length(Previous,PLength),
+        \+ PLength > 10,
         find(Med, End, [Med|Previous], Path).
 
 get_map_points_by_feedback([],_,[]).
