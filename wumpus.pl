@@ -252,6 +252,7 @@ pick_path_point(State,NewPaths,Path):-
     write(MiniPaths),
     nl(),
     write("BEFORE FILTERING SHORT"),
+    write(NewPaths),
     filter_short_length_lists(MiniPaths,NewPaths,NoShortPath),
     write("NO SHORT PATH"),
     write(NoShortPath),
@@ -286,6 +287,9 @@ get_mini_paths(Distance,MiniPaths):-
 %is_too_long/2
 %check if a list is too short, super short path is not desired in this game.
 is_too_short(L,Xs):-
+    nl(),
+    write("STARTING FILTERING TOO SHORT ONES")
+    write(XS),
     length(Xs,LengthList),
     L >= LengthList.
 
