@@ -289,7 +289,7 @@ get_mini_paths(Distance,MiniPaths):-
 is_too_short(L,Xs):-
     nl(),
     write("STARTING FILTERING TOO SHORT ONES"),
-    write(XS),
+    write(Xs),
     length(Xs,LengthList),
     L >= LengthList.
 
