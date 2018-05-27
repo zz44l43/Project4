@@ -244,6 +244,7 @@ path_by_random(State,Path):-
 
 pick_path_point(State,NewPaths,Path):-
     nl(),
+    write(NewPaths),
     write("START PICKING A PATH FOR"),
 	pick_distance(State,Distance),
 	get_mini_paths(Distance,MiniPaths),
