@@ -55,17 +55,29 @@ smell_intersction(State,Points):-
     nth0(0,ManhanttanPoints,FirstPoint),
     points_intersections(FirstPoint,ManhanttanPoints,Points).
 
+get_points_stench(_,[],[]).
+get_points_stench(State,[StenchPoint|StenchPoints],Points):-
+    get_manhattan_points(StenchPoint,1,State,DistancePoints),
+    Points = [DistancePoints|OtherDistancePoints],
+    get_points_stench(State,StenchPoints,OtherDistancePoints).
+
+stench_intersection(State,Points):-
+    get_state_stench_point(State,StenchPoints),
+    get_points_stench(State,StenchPoints,DistancePoints),
+    nth0(0,DistancePoints,FirstPoint),
+    points_intersections(FirstPoint,DistancePoints,Points).
+
 guess(StateO,State,Guess):-
     nl(),
     write("New ROUND OF GUESS, ROUND is "),
     get_state_round(StateO,Round),
     write(Round),
-    get_search_mode(State,SearchMode),
 	(
         is_search_mode(StateO)
         -> get_search_mode_next_point(StateO,StateSearch,SearchGuess)
         ;
-        get_state_wumpus_point_path(StateO,StateSearch,SearchGuess)
+        get_state_wumpus_point_path(StateO,StateSearch,SearchGuess),
+        writeln("FINISHED WUMPUS MODE")
 	),
 	set_state_history(StateSearch,SearchGuess,State),
 	add_shoot(SearchGuess,Guess),
@@ -144,7 +156,7 @@ updateState(StateO,[Dir|Guess], [wumpus|Feedback], X-Y, State):-
 	nl(),
 	write("WUMPUS STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
-	updateMap(StateO,PostPosition,empty,MapState),
+	updateMap(StateO,PostPosition,wumpus,MapState),
 	set_state_wumpus(MapState,PostPosition,WumpusState),
 	updateState(WumpusState,Guess,Feedback,PostPosition,State).
 
@@ -172,8 +184,15 @@ getPositionAfterFeedback(X-Y, Dir, PostPosition):-
 get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
     nl(),
     write("WUMPUS MODE"),
+    write(StateO),
 	get_state_wumpus_point(StateO,WumpusPoint),
+    nl(),
+    write("WUMPUS IS "),
+    write(WumpusPoint),
     get_all_path_point(StateO,WumpusPoint,NewPaths),
+    nl(),
+    write("PATH ISSSSSS"),
+    write(NewPaths),
 	pick_path_point(StateO,NewPaths,SearchGuess).
 
 
@@ -184,6 +203,20 @@ add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
 
 get_search_mode_next_point(StateO,StateO,Guess):-
 	path_by_random(StateO,Guess).
+
+get_all_path_point_no_restriction(State,Point,NewPaths):-
+    get_state_history(State,History),
+	get_state_initial_point(State,InitialPoint),
+    findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
+    length(AllPaths,PathLengths),
+    write(PathLengths),
+    nth0(0,AllPaths,SinglePath),
+    (
+        PathLengths = 1, SinglePath \= north
+        -> findall(FindPath,find_no_restriction(InitialPoint,Point,FindPath),AllPathsNoRestriction)
+        ;
+        NewPaths = SubtractPaths
+    ).
 
 get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
@@ -197,6 +230,11 @@ path_by_random(State,Path):-
         Mode = smell
         -> pick_smell_point(State,Point),
         write("SMELL MODE PICKING"),
+        write(Point)
+        ;
+        Mode = stench
+        -> pick_stench_point(State,Point),
+        write("STENCH MODE PICKING"),
         write(Point)
         ;
         pick_point(State,Point),
@@ -260,6 +298,12 @@ is_too_short(L,Xs):-
 filter_short_length_list(A,In,Out):-
     exclude(is_too_short(A),In,Out).
 
+pick_stench_point(State,Point):-
+    stench_intersection(State,IntersectedPoints),
+    get_state_map(State,Map),
+    pick_valid_points(IntersectedPoints,Map,Points),
+    removeEmpty(Points,NonEmptyPoints),
+    nth0(0,NonEmptyPoints,Point).   
 
 pick_smell_point(State,Point):-
     smell_intersction(State,IntersectedPoints),
@@ -563,6 +607,17 @@ find(Start, End, Previous, [Dirn|Path]) :-
         \+ PLength > 10,
         find(Med, End, [Med|Previous], Path).
 
+%% find a simple Path from Start to End
+find_no_restriction(Start, End, Path) :-
+        find_no_restriction(Start, End, [Start], Path).
+
+find_no_restriction(Start, Start, _Previous, []).
+find_no_restriction(Start, End, Previous, [Dirn|Path]) :-
+        edge(Start, Dirn, Med),
+        length(Previous,PLength),
+        \+ PLength > 10,
+        find_no_restriction(Med, End, [Med|Previous], Path).        
+
 get_map_points_by_feedback([],_,[]).
 get_map_points_by_feedback([_-_-OtherFeedback|MapPoints],Feedback,Points):-
 	OtherFeedback \= Feedback,
@@ -584,6 +639,8 @@ insert_edges([(From,Dir,To)|List]):-
     assert(edge(From,Dir,To)),
 	write(edge(From,Dir,To)),
     insert_edges(List).
+print:-
+ forall(fact(P), writeln(P)).
 
 delete_edges(X-Y):-
     (
