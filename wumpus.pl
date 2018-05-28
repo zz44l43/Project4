@@ -657,9 +657,13 @@ get_map_points_by_feedback([X-Y-Feedback|MapPoints],Feedback,Points):-
 
 %Get and initialized of map in the system.
 get_map(NumberRow,NumberColumn,Map):-
-	numlist(1,NumberRow,AllRows),
-	numlist(1,NumberColumn,AllColumns),
-	combine_points_map(AllRows,AllColumns,Map).
+    numlist(1,NumberRow,AllRows),
+    writeln(AllRows),
+    numlist(1,NumberColumn,AllColumns),
+    writeln("CCCC"),
+    writeln(AllColumns),
+    combine_points_map(AllColumns,AllRows,Map),
+    writeln(Map).
 
 %inswert a new edges to the system.
 insert_edges([]).
