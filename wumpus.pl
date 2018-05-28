@@ -253,14 +253,15 @@ pick_path_point(State,NewPaths,Path):-
     nl(),
     write("BEFORE FILTERING SHORT"),
     write(NewPaths),
-    filter_short_length_lists(MiniPaths,NewPaths,NoShortPath),
-    write("NO SHORT PATH"),
-    write(NoShortPath),
-    sort_atoms_by_length(NoShortPath,SortedPath),
-    write("AFTER SORT!"),
-    nth0(0,SortedPath,Path),
-    write("PICKED PATH!"),
-    write(Path).
+    nth0(0,NewPaths,TestPath),
+    (
+        is_list(TestPath)
+        ->filter_short_length_lists(MiniPaths,NewPaths,NoShortPath),
+        sort_atoms_by_length(NoShortPath,SortedPath),
+        nth0(0,SortedPath,Path)
+        ;
+        Path = NewPaths
+    ).
 
 filter_short_length_lists(MiniPaths, AllPaths, FilteredPath):-
     filter_short_length_list(MiniPaths,AllPaths,NoShortPath),
