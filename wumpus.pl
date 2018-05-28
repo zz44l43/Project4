@@ -4,7 +4,6 @@ initialState(NR,NC,XS,YS,State):-
     generate_edges(NR,NC,E),
     insert_edges(E),
     get_map(NR,NC,Map),
-	nl(),
     replace(XS-YS-_,XS-YS-empty,Map,UpdatedMap),
 	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],[],State).
 
@@ -290,7 +289,6 @@ pick_point(State,Point):-
 		;
 		pick_point_random(State, Points)
 	),
-    nl(),
     removeEmpty(Points,NonEmptyPoints),
 	nth0(0,NonEmptyPoints,Point).
 
