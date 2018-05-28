@@ -214,7 +214,7 @@ get_all_path_point(State,Point,NewPaths):-
     get_state_initial_point(State,InitialPoint),
     get_state_round(State,Round),
     (
-        Round < 25
+        Round < 40
         ->  findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths)
         ;
         findall(FindPath,find_no_restriction(InitialPoint,Point,FindPath),AllPaths)
