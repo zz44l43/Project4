@@ -249,6 +249,7 @@ path_by_random(State,NewState,Path):-
         writeln("DONE UPDATE GRAPH"),
         writeln(UpdatedState),
         delete_edges(Point),
+        writeln("BEFORE GOINGTO ANOTHER ROUND"),
         path_by_random(UpdatedState,NewState,Path)
         ;
         NewState = State,
