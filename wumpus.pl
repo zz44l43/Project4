@@ -5,10 +5,8 @@ initialState(NR,NC,XS,YS,State):-
     insert_edges(E),
     get_map(NR,NC,Map),
 	nl(),
-	write(Map),
     replace(XS-YS-_,XS-YS-empty,Map,UpdatedMap),
-	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],[],State),
-	write(State).
+	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],[],State).
 
 get_initial_state(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints)).
 
@@ -68,44 +66,25 @@ stench_intersection(State,Points):-
     points_intersections(FirstPoint,DistancePoints,Points).
 
 guess(StateO,State,Guess):-
-    nl(),
-    write("New ROUND OF GUESS, ROUND is "),
-    get_state_round(StateO,Round),
-    write(Round),
 	(
         is_search_mode(StateO)
         -> get_search_mode_next_point(StateO,StateSearch,SearchGuess)
         ;
-        get_state_wumpus_point_path(StateO,StateSearch,SearchGuess),
-        writeln("FINISHED WUMPUS MODE")
+        get_state_wumpus_point_path(StateO,StateSearch,SearchGuess)
 	),
     set_state_history(StateSearch,SearchGuess,State),
-    shoot_dir_change(SearchGuess,Guess),
-	nl(),
-	write("State is "),
-	write(State),
-	nl(),
-	write("Guess is "),
-	write(Guess).
+    shoot_dir_change(SearchGuess,Guess).
 	
 updateState(StateO, Guess, Feedback, State):-
-    nl(),
-    write("NEW ROUND OF UPDATE"),
-    write(Guess),
-    write(Feedback),
 	get_state_initial_point(StateO,InitialPoint),
 	updateState(StateO,Guess,Feedback,InitialPoint,State).
 
 updateState(State,[],[],_,State).
 updateState(State,_,[],_,State).
 updateState(StateO,[shoot|Guess], [_|Feedback], X-Y, State):-
-	nl(),
-	write("SHOOT STATE UPDATE"),
     updateState(StateO,Guess, Feedback, X-Y, State).
 
 updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
-	nl(),
-	write("STENCH STATE UPDATE"),
     getPositionAfterFeedback(X-Y, Dir,PostPosition),
     get_state_stench_point(StateO,StenchPoints),
     (
@@ -118,8 +97,6 @@ updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
 	updateState(StenchState,Guess,Feedback,PostPosition,State).
 	
 updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
-        nl(),
-        write("SMELL STATE UPDATE"),
         getPositionAfterFeedback(X-Y, Dir,PostPosition),
         get_state_smell_point(StateO,SmellPoints),
         (
@@ -132,32 +109,24 @@ updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
         updateState(SmellState,Guess,Feedback,PostPosition,State).
 
 updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
-	nl(),
-	write("EMPTY STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,empty,MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
 
 updateState(StateO,[Dir|Guess], [damp|Feedback], X-Y, State):-
-	nl(),
-	write("DAMP STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,damp,MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
 
 updateState(StateO,[Dir|Guess], [wall|Feedback], X-Y, State):-
-	nl(),
-	write("WALL STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,wall,MapState),
 	delete_edges(PostPosition),
 	updateState(MapState,Guess,Feedback,X-Y,State).
 
 updateState(StateO,[Dir|Guess], [pit|Feedback], X-Y, State):-
-	nl(),
-	write("PIT STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,pit,MapState),
 	delete_edges(PostPosition),
@@ -165,8 +134,6 @@ updateState(StateO,[Dir|Guess], [pit|Feedback], X-Y, State):-
 
 
 updateState(StateO,[Dir|Guess], [wumpus|Feedback], X-Y, State):-
-	nl(),
-	write("WUMPUS STATE UPDATE"),
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,wumpus,MapState),
 	set_state_wumpus(MapState,PostPosition,WumpusState),
@@ -194,13 +161,7 @@ getPositionAfterFeedback(X-Y, Dir, PostPosition):-
     ).
 
 get_state_wumpus_point_path(StateO,NewState,SearchGuess):-
-    nl(),
-    write("WUMPUS MODE"),
-    write(StateO),
 	get_state_wumpus_point(StateO,WumpusPoint),
-    nl(),
-    write("WUMPUS IS "),
-    write(WumpusPoint),
     get_all_path_point(StateO,WumpusPoint,NewPaths),
     (
         NewPaths = []
@@ -234,36 +195,21 @@ get_all_path_point(State,Point,NewPaths):-
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,NewState,Path):-
-    writeln("START PATH BY RANDOM"),
-    writeln(State),
     get_search_mode(State,Mode),
     (
         Mode = stench
-        -> pick_stench_point(State,Point),
-        write("STENCH MODE PICKING"),
-        write(Point)
+        -> pick_stench_point(State,Point)
         ;
         Mode = smell
-        -> write("SMELL MODE PICKING"),
-        pick_smell_point(State,Point),
-        write(Point)
+        -> pick_smell_point(State,Point)
         ;
-        pick_point(State,Point),
-        write("NORMAL MODE PICKING")
+        pick_point(State,Point)
     ),
-    nl(),
-    write("POINT GOT PICKED IS "),
-    write(Point),
     get_all_path_point(State,Point,NewPaths),
     (
         NewPaths = []
-        -> nl(),
-        write("DIDNT FIND ANY REPICK"),
-        updateMap(State,Point,wall,UpdatedState),
-        writeln("DONE UPDATE GRAPH"),
-        writeln(UpdatedState),
+        -> updateMap(State,Point,wall,UpdatedState),
         delete_edges(Point),
-        writeln("BEFORE GOINGTO ANOTHER ROUND"),
         path_by_random(UpdatedState,NewState,Path)
         ;
         NewState = State,
@@ -271,16 +217,8 @@ path_by_random(State,NewState,Path):-
     ).
 
 pick_path_point(State,NewPaths,Path):-
-    nl(),
-    write(NewPaths),
-    write("START PICKING A PATH FOR!!!!!!"),
 	pick_distance(State,Distance),
 	get_mini_paths(Distance,MiniPaths),
-    write("MINI PATH IS "),
-    write(MiniPaths),
-    nl(),
-    write("BEFORE FILTERING SHORT"),
-    write(NewPaths),
     nth0(0,NewPaths,TestPath),
     (
         is_list(TestPath)
@@ -316,9 +254,6 @@ get_mini_paths(Distance,MiniPaths):-
 %is_too_long/2
 %check if a list is too short, super short path is not desired in this game.
 is_too_short(L,Xs):-
-    nl(),
-    write("STARTING FILTERING TOO SHORT ONES"),
-    write(Xs),
     length(Xs,LengthList),
     L >= LengthList.
 
@@ -338,8 +273,6 @@ pick_smell_point(State,Point):-
     smell_intersction(State,IntersectedPoints),
     get_state_map(State,Map),
     pick_valid_points(IntersectedPoints,Map,Points),
-    writeln("SMELL POINTS"),
-    writeln(IntersectedPoints),
     removeEmpty(Points,NonEmptyPoints),
     (
         NonEmptyPoints = []
@@ -348,12 +281,7 @@ pick_smell_point(State,Point):-
     ).
 
 pick_point(State,Point):-
-    nl(),
-    write("START PICKING A POINT"),
 	pick_distance(State,Distance),
-    nl(),
-    write("DISTANCE IS "),
-    write(Distance),
 	(
 		Distance > 0
 		->pick_point_in_a_distance(State,Distance,DistancePoints),
@@ -364,9 +292,7 @@ pick_point(State,Point):-
 	),
     nl(),
     removeEmpty(Points,NonEmptyPoints),
-	nth0(0,NonEmptyPoints,Point),
-    write("FINISH PICKING A POINT"),
-    write(Point).
+	nth0(0,NonEmptyPoints,Point).
 
 
 pick_valid_point(_,[],empty).
@@ -385,8 +311,6 @@ pick_valid_points([Point|Points],Map,ValidPoints):-
     pick_valid_points(Points,Map,OtherPoints).
 
 pick_point_random(State, Points):-
-    nl(),
-    write("PICK POINT RANDOM"),
 	get_state_map(State,Map),
 	get_map_points_by_feedback(Map,unknown,Points).
 
@@ -664,18 +588,13 @@ get_map_points_by_feedback([X-Y-Feedback|MapPoints],Feedback,Points):-
 %Get and initialized of map in the system.
 get_map(NumberRow,NumberColumn,Map):-
     numlist(1,NumberRow,AllRows),
-    writeln(AllRows),
     numlist(1,NumberColumn,AllColumns),
-    writeln("CCCC"),
-    writeln(AllColumns),
-    combine_points_map(AllColumns,AllRows,Map),
-    writeln(Map).
+    combine_points_map(AllColumns,AllRows,Map).
 
 %inswert a new edges to the system.
 insert_edges([]).
 insert_edges([(From,Dir,To)|List]):-
     assert(edge(From,Dir,To)),
-	write(edge(From,Dir,To)),
     insert_edges(List).
 
 delete_edges(X-Y):-
@@ -712,9 +631,7 @@ replace(O, R, [H|T], [H|T2]) :-
 shoot_dir_change([Dir1|Dirs],NewGuess):-
     shoot_dir_change(Dirs,Dir1,ShootGuess),
     AddedGuess = [Dir1|ShootGuess],
-    flatten(AddedGuess, NewGuess),
-    write(NewGuess).
-
+    flatten(AddedGuess, NewGuess).
 
 shoot_dir_change([], _Previous, []).
 shoot_dir_change([Dir1|Dirs],Previous,[AddDir|NewGuess]):-
@@ -723,8 +640,6 @@ shoot_dir_change([Dir1|Dirs],Previous,[AddDir|NewGuess]):-
         -> AddDir = [Dir1 | shoot],
         shoot_dir_change(Dirs,Dir1,NewGuess)
         ;
-        writeln("HERE"),
         AddDir = Dir1,
-        writeln(AddDir),
         shoot_dir_change(Dirs,Dir1,NewGuess)
     ).
