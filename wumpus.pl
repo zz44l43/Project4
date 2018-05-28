@@ -227,7 +227,7 @@ get_all_path_point(State,Point,NewPaths):-
     get_state_round(State,Round),
     get_state_row_number(StateO,Row),
     get_state_column_number(StateO,Column),
-    Limit is Row + Column,
+    Limit = Row + Column,
     (
         Round < Limit
         ->  findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths)
