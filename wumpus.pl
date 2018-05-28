@@ -1,4 +1,39 @@
+
+/** <wumpus> Project 4 Documentation
+ * 
+
+The University of Melbourne 
+
+Department of Computing and Information Systems 
+
+Declarative Programming  COMP90048 
+
+Wumpus is a planning problem. You need to find and kill a Wumpus hiding in an unknown maze. T
+he player sends in a series of disposable robots each with a fixed list of instructions to follow. 
+Each robot follows its instructions until it is destroyed or it finishes the instructions, or it kills the Wumpus. 
+After a robot is finished the player gets feedback on what the robot sensed following the instructions. 
+The aim is to explore the maze and find and shoot the Wumpus.
+
+@author Zhi Zheng StudentID: 327965
+@E-mail:        zhiz2@student.unimelb.edu.au
+
+
+*/
+
+
 :- module(wumpus,[initialState/5, guess/3, updateState/4]).
+
+
+%!      initialState(+NR:int,+NC:int,+XS:int,+YS:int,-StateO) is det.
+%       initialState/5
+%       
+%       1 of three main function.
+%       To initialized the system by inserting edges and generates all the edges/path in the system
+%       Initialzied the map inthe system and with the starting point to be marked as the empty.
+%       In the end it also return a state ojbect, this object contains the current position of the robot bascially it is the starting point
+%       The state object also contain other property items
+%       such as the History of the guess record, the wumpus's coordinate if found.
+%       
 
 initialState(NR,NC,XS,YS,State):-
     generate_edges(NR,NC,E),
@@ -7,7 +42,13 @@ initialState(NR,NC,XS,YS,State):-
     replace(XS-YS-_,XS-YS-empty,Map,UpdatedMap),
 	get_initial_state(NR,NC,XS-YS,UpdatedMap,[],empty,[],[],State).
 
+%!      get_initial_state(+NumberRow:int,+NumberColumn:int,+InitialX:int-InitialY:int,+Map:map,+History:list,+WumpusPoint:atom,+StenchPoints:list,+SmellPoints:list, -Map:map)  is det.
+%       Init the state of the game
 get_initial_state(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints,(NumberRow,NumberColumn,InitialX-InitialY,Map,History,WumpusPoint,StenchPoints,SmellPoints)).
+
+%!      is_search_mode(+State:state) is det.
+%       is_search_mode/1
+%       determine which mode to be used in the guess. If we didn't find wumpus then searching mode otherwise we know which point we're going.
 
 is_search_mode(State):-
 	get_state_wumpus_point(State,WumpusPoint),
@@ -18,6 +59,9 @@ is_search_mode(State):-
 		false
 	).
 
+%!      get_search_mode(+State:state, -SearchMode:atom) is det.
+%       get_search_mode/2
+%       Determine the mode so we can narrow down the search area. 
 get_search_mode(State,SearchMode):-
     get_state_wumpus_point(State,WumpusPoint),
     get_state_smell_point(State,SmellPoints),
@@ -35,35 +79,57 @@ get_search_mode(State,SearchMode):-
         SearchMode = none
 	).
 
+%!      get_manhattan_points_smell(+State:state, +SmellPoints:list -ManhattanPoints:list) is det.
+%       get_manhattan_points_smell/3
+%       Get all the manhattan points surround a set of points. This is usefull for both smell and stench cases.
 get_manhattan_points_smell(_,[],[]).
 get_manhattan_points_smell(State,[SmellPoint|SmellPoints],ManhattanPoints):-
     get_manhattan_points(SmellPoint,3,State,ManhattanPointsForOnePoint),
     ManhattanPoints = [ManhattanPointsForOnePoint|OtherManhattanPoints],
     get_manhattan_points_smell(State,SmellPoints,OtherManhattanPoints).
 
+%!      points_intersections(+Points:list, +RestPoints:list -FinalPoints:list) is det.
+%       points_intersections/3
+%       Intersection between all the points.
 points_intersections(Points,[],Points).
 points_intersections(Points,[OtherPoints|RestPoints],FinalPoints):-
     intersection(Points,OtherPoints,CurrentIntersctions),
     points_intersections(CurrentIntersctions,RestPoints,FinalPoints).
 
+%!      smell_intersction(+State:state, -Points:list) is det.
+%       smell_intersction/2
+%       Intersection between all the smell points.
 smell_intersction(State,Points):-
     get_state_smell_point(State,SmellPoints),
     get_manhattan_points_smell(State,SmellPoints,ManhanttanPoints),
     nth0(0,ManhanttanPoints,FirstPoint),
     points_intersections(FirstPoint,ManhanttanPoints,Points).
 
+%!      get_points_stench(+State:state, +StenchPoints:list -Points:list) is det.
+%       get_points_stench/3
+%       Get all the points for stench.
 get_points_stench(_,[],[]).
 get_points_stench(State,[StenchPoint|StenchPoints],Points):-
     get_manhattan_points(StenchPoint,1,State,DistancePoints),
     Points = [DistancePoints|OtherDistancePoints],
     get_points_stench(State,StenchPoints,OtherDistancePoints).
 
+%!      stench_intersection(+State:state, -Points:list) is det.
+%       stench_intersection/2
+%       Get all the intersected points for all the stench. So we can narrow down.
 stench_intersection(State,Points):-
     get_state_stench_point(State,StenchPoints),
     get_points_stench(State,StenchPoints,DistancePoints),
     nth0(0,DistancePoints,FirstPoint),
     points_intersections(FirstPoint,DistancePoints,Points).
 
+%!      guess(+StateO:state, -State:state, -Points:list) is det.
+%       guess/3
+%       Make guesses/instruction for the robots to move. Mainly consist with east west south or north.
+%       The function will act differently based on weather it is on search mode or not.
+%       In search mode. a guess will be conducted based on a range or a random point that we have some cludes about the map.
+%       Otherwise, we know where the wumpus is and make guesses/instruction by targeting that point.
+%       Shooting will be conducted if there is a change of a direction in the guesses or instructions. E.g east west will become east west shoot. 
 guess(StateO,State,Guess):-
 	(
         is_search_mode(StateO)
@@ -73,16 +139,30 @@ guess(StateO,State,Guess):-
 	),
     set_state_history(StateSearch,SearchGuess,State),
     shoot_dir_change(SearchGuess,Guess).
-	
+
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, -State:state) is det.
+%       updateState/4
+%       Update all the state and maps based on the previous guess and the feedbacks.
+%       It will be mainly calling another updateState/5 for the specific updates.
 updateState(StateO, Guess, Feedback, State):-
 	get_state_initial_point(StateO,InitialPoint),
 	updateState(StateO,Guess,Feedback,InitialPoint,State).
 
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps based on the previous guess and the feedbacks.
+%       X-Y Determines the current position of the robot on the map after the guess and feedback.
+%       Generally get the position after the guess
+%       Update the map according based on the feedback.
+%       Update the state include removing the edges(Facts) in the system.
 updateState(State,[],[],_,State).
 updateState(State,_,[],_,State).
 updateState(StateO,[shoot|Guess], [_|Feedback], X-Y, State):-
     updateState(StateO,Guess, Feedback, X-Y, State).
 
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for stench feedback.
 updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
     getPositionAfterFeedback(X-Y, Dir,PostPosition),
     get_state_stench_point(StateO,StenchPoints),
@@ -94,7 +174,10 @@ updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
         StenchState = StateO
     ),
 	updateState(StenchState,Guess,Feedback,PostPosition,State).
-	
+
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for stench smell.	
 updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
         getPositionAfterFeedback(X-Y, Dir,PostPosition),
         get_state_smell_point(StateO,SmellPoints),
@@ -107,42 +190,62 @@ updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
         ),
         updateState(SmellState,Guess,Feedback,PostPosition,State).
 
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for empty feedback.
 updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,empty,MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
-
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for damp feedback.
 updateState(StateO,[Dir|Guess], [damp|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,damp,MapState),
 	updateState(MapState,Guess,Feedback,PostPosition,State).
 
-
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for wall feedback.
+%       remove the any edges(FACT) around this point as it has no need anymore.
 updateState(StateO,[Dir|Guess], [wall|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,wall,MapState),
 	delete_edges(PostPosition),
 	updateState(MapState,Guess,Feedback,X-Y,State).
 
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for pit feedback.
+%       remove the any edges(FACT) around this point as it has no need anymore.
 updateState(StateO,[Dir|Guess], [pit|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,pit,MapState),
 	delete_edges(PostPosition),
 	updateState(MapState,Guess,Feedback,X-Y,State).
 
-
+%!      updateState(+StateO:state, +Guess:list, +Feedback:list, +X:int-Y:int:atom -State:state) is det.
+%       updateState/5
+%       Update all the state and maps for wumpus feedback.
 updateState(StateO,[Dir|Guess], [wumpus|Feedback], X-Y, State):-
 	getPositionAfterFeedback(X-Y, Dir,PostPosition),
 	updateMap(StateO,PostPosition,wumpus,MapState),
 	set_state_wumpus(MapState,PostPosition,WumpusState),
 	updateState(WumpusState,Guess,Feedback,PostPosition,State).
 
+%!      updateMap(+StateO:state, +X:int-Y:int:atom, +Feedback:list,-State:state) is det.
+%       updateMap/4
+%       Update the map accordingly based on the feedback for a specific X-Y position and return a new state.
 updateMap(State,X-Y,Feedback,ReplacedState):-
 	get_state_map(State,MapO),
     replace(X-Y-_,X-Y-Feedback,MapO,Map),
 	set_state_map(State,Map,ReplacedState).
 
+%!      getPositionAfterFeedback(+X:int-Y:int:atom, +Dir:atom,-X:int-Y:int:atom) is det.
+%       getPositionAfterFeedback/3
+%       Get the position based on the feedback from the current X-Y. 
 getPositionAfterFeedback(X-Y, Dir, PostPosition):-
     (
         Dir = east
@@ -159,6 +262,9 @@ getPositionAfterFeedback(X-Y, Dir, PostPosition):-
         PostPosition = X-NewY
     ).
 
+%!      get_state_wumpus_point_path(+StateO:state -StateO:state, SearchGuess:list) is det.
+%       get_state_wumpus_point_path/3
+%       Find all the guess/instructions if the wumpus point is known.
 get_state_wumpus_point_path(StateO,NewState,SearchGuess):-
 	get_state_wumpus_point(StateO,WumpusPoint),
     get_all_path_point(StateO,WumpusPoint,NewPaths),
@@ -171,16 +277,23 @@ get_state_wumpus_point_path(StateO,NewState,SearchGuess):-
     ).
 
 
-%To add shot to each of the instrunction so the robot will fire wildly.
+%       To add shot to each of the instrunction so the robot will fire wildly.
+%       add_shoot/2
 add_shoot([],[]).
 add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
     add_shoot(OtherS,Other).
 
 
-
+%       Get the next point in the search mode.
+%       get_search_mode_next_point/3
 get_search_mode_next_point(StateO,NewState,Guess):-
 	path_by_random(StateO,NewState,Guess).
 
+%!      get_all_path_point(+StateO:state -StateO:state, SearchGuess:list) is det.
+%       get_all_path_point/3
+%       Find all the guess/instructions from a point to another.
+%       if the amount round is more than 40 then we will find that search for all the path.
+%       @tbd Determine the best value for the round rather than current 40. It should be based on the size of the map. Optimize requires.
 get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
     get_state_initial_point(State,InitialPoint),
@@ -193,6 +306,10 @@ get_all_path_point(State,Point,NewPaths):-
     ),
 	subtract(AllPaths,History,NewPaths).
 
+%!      path_by_random(+StateO:state -StateO:state, SearchGuess:list) is det.
+%       path_by_random/3
+%       Find all the guess/instructions by choosing a random point on the map. 
+%       This point can be purely radomlized or randomized within a known area of points.
 path_by_random(State,NewState,Path):-
     get_search_mode(State,Mode),
     (
@@ -215,6 +332,9 @@ path_by_random(State,NewState,Path):-
         pick_path_point(State,NewPaths,Path)
     ).
 
+%!      pick_path_point(+StateO:state -StateO:state, SearchGuess:list) is det.
+%       pick_path_point/3
+%       Find a single series of guesses/instructions from paths.
 pick_path_point(State,NewPaths,Path):-
 	pick_distance(State,Distance),
 	get_mini_paths(Distance,MiniPaths),
@@ -228,6 +348,10 @@ pick_path_point(State,NewPaths,Path):-
         Path = NewPaths
     ).
 
+%!      pick_path_point(+MiniPaths:list +AllPaths:list, FilteredPath:list) is det.
+%       pick_path_point/3
+%       we try to explore a large points on the map in 1 guess so a 1 instruction is not so desired. 
+%       Thus we remove them if we have alternative paths to be selected.
 filter_short_length_lists(MiniPaths, AllPaths, FilteredPath):-
     filter_short_length_list(MiniPaths,AllPaths,NoShortPath),
     (
@@ -237,11 +361,15 @@ filter_short_length_lists(MiniPaths, AllPaths, FilteredPath):-
         FilteredPath = NoShortPath
     ).
 
+%!      sort_atoms_by_length(+Atoms:list -ByLength:list) is det.
+%       sort_atoms_by_length/2
+%       Sort a list of guess by their length. So we choose a minimumn instruction from 1 point to another.
 sort_atoms_by_length(Atoms, ByLength) :-
 	map_list_to_pairs(length, Atoms, Pairs),
 	keysort(Pairs, Sorted),
 	pairs_values(Sorted, ByLength).
 
+%       Detemrine the minimum path requires from 1 point to another so we utilized the information.
 get_mini_paths(Distance,MiniPaths):-
 	(
 		Distance > 0
@@ -261,6 +389,10 @@ is_too_short(L,Xs):-
 filter_short_length_list(A,In,Out):-
     exclude(is_too_short(A),In,Out).
 
+%!      pick_stench_point(+State:state -Point:atom) is det.
+%       pick_stench_point/2
+%       Get a point to be selected when we know there is stench on the map.
+%       Find the intersection between stench points.
 pick_stench_point(State,Point):-
     stench_intersection(State,IntersectedPoints),
     get_state_map(State,Map),
@@ -268,6 +400,10 @@ pick_stench_point(State,Point):-
     removeEmpty(Points,NonEmptyPoints),
     nth0(0,NonEmptyPoints,Point).   
 
+%!      pick_smell_point(+State:state -Point:atom) is det.
+%       pick_smell_point/2
+%       Get a point to be selected when we know there is smell on the map.
+%       Find the intersection between smell points, a mahattan range.
 pick_smell_point(State,Point):-
     smell_intersction(State,IntersectedPoints),
     get_state_map(State,Map),
@@ -279,6 +415,9 @@ pick_smell_point(State,Point):-
         ; nth0(0,NonEmptyPoints,Point)
     ).
 
+%!      pick_point(+State:state -Point:atom) is det.
+%       pick_point/2
+%       Get a point that is unknown on the map either on a selected range or randomly.
 pick_point(State,Point):-
 	pick_distance(State,Distance),
 	(
@@ -292,7 +431,10 @@ pick_point(State,Point):-
     removeEmpty(Points,NonEmptyPoints),
 	nth0(0,NonEmptyPoints,Point).
 
-
+%!      pick_valid_point(+X:int-Y:int, +Points:list, -Point:list) is det.
+%       pick_valid_point/3
+%       if the intend selected X-Y is unknown on the map then it will be return.
+%       This is used in determining wether picked points are valid to be selected for determining the path because we dont need to select the point that we have explored before.
 pick_valid_point(_,[],empty).
 pick_valid_point(X-Y,[Xx-Yy-Status|MapPoints],Point):-
     (
@@ -302,20 +444,33 @@ pick_valid_point(X-Y,[Xx-Yy-Status|MapPoints],Point):-
         pick_valid_point(X-Y,MapPoints,Point)
     ).
 
+%!      pick_valid_points(Points:int, +Map:list, -Point:list) is det.
+%       pick_valid_points/3
+%       if the intend selected list of X-Y is unknown on the map then it will be return.
+%       This is used in determining wether picked points are valid to be selected for determining the path because we dont need to select the point that we have explored before.
 pick_valid_points([],_,[]).
 pick_valid_points([Point|Points],Map,ValidPoints):-
     pick_valid_point(Point,Map,ValidPoint),
     ValidPoints = [ValidPoint|OtherPoints],
     pick_valid_points(Points,Map,OtherPoints).
 
+%!      pick_point_random(State:state,-Points:list) is det.
+%       pick_point_random/2
+%       Pick all the poinst that is unknown on the map. 
 pick_point_random(State, Points):-
 	get_state_map(State,Map),
 	get_map_points_by_feedback(Map,unknown,Points).
 
+%!      pick_point_in_a_distance(State:state,+Distatnce:int. -Points:list) is det.
+%       pick_point_in_a_distance/3
+%       Pick all the points in a range. in a radius of the distance value.
 pick_point_in_a_distance(State,Distance,Points):-
 	get_state_initial_point(State,InitialPoint),
 	get_point_distance_points(InitialPoint,Distance,State,Points).
 
+%!      pick_distance(State:state, -Distatnce:int) is det.
+%       pick_distance/2
+%       We only explore a samll range at beginning. then as there is more information we have no limitation on the radius of the points to be discovered.
 pick_distance(State,Distance):-
 	get_state_round(State,Round),
 	(
@@ -327,6 +482,14 @@ pick_distance(State,Distance):-
 		;
 		Distance = -1
 	).
+
+
+
+/** 
+
+All the getter for the State below
+
+*/
 
 get_state_round(State,Round):-
 	get_state_history(State,History),
@@ -353,6 +516,12 @@ get_min_x(_,1).
 get_max_x((_,NumberColumn,_,_,_,_,_),NumberColumn).
 get_min_y(_,1).
 get_max_y((NumberRow,_,_,_,_,_,_),NumberRow).
+
+/** 
+
+Determine the x an y values from a X or Y point in a radius(DISTANCE).
+e.g 2-2 with distance of 1 will get 1-2, 2-1, 3-2,2-3
+*/
 
 get_west_x_distance_points(X,MinX,Distance,XWestPoints):-
 	(
@@ -430,6 +599,9 @@ combine_single_point_map(_,[],[]).
 combine_single_point_map(X,[Y|YPoints],[X-Y-unknown|Points]):-
 	combine_single_point_map(X,YPoints,Points).
 
+%!      get_point_distance_points(+X:int-Y:int, +Distatnce:int, +State:state, -Points:list) is det.
+%       get_point_distance_points/4
+%       Get all the X-Y position based on the radis(Distance) from a point.
 get_point_distance_points(X-Y,Distance,State,Points):-
 	get_min_x(State,MinX),
 	get_max_x(State,MaxX),
@@ -474,6 +646,9 @@ getMaxX(Column,Column).
 getMinY(_,1).
 getMaxY(Row,Row).
 
+%!      generate_edges(+Row:int +Column:int, E:list) is det.
+%       generate_edges/3
+%       Generates all the possible paths for each point on the map.
 generate_edges(Row,Column,E):-
     getMinX(Column,MinX),
     getMaxX(Column,MaxX),
@@ -549,6 +724,15 @@ generate_edges_point_south(X,Y,MaxY,E):-
         ;
         E = empty
     ).
+
+
+/** 
+ * 
+ * 
+        All the utility function to help the above oprations.
+
+*
+*/
 
 %% find a simple Path from Start to End
 find(Start, End, Path) :-
