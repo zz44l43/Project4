@@ -79,8 +79,8 @@ guess(StateO,State,Guess):-
         get_state_wumpus_point_path(StateO,StateSearch,SearchGuess),
         writeln("FINISHED WUMPUS MODE")
 	),
-	set_state_history(StateSearch,SearchGuess,State),
-	add_shoot(SearchGuess,Guess),
+    set_state_history(StateSearch,SearchGuess,State),
+    shoot_dir_change(SearchGuess,Guess),
 	nl(),
 	write("State is "),
 	write(State),
@@ -203,6 +203,8 @@ get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
 add_shoot([],[]).
 add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
     add_shoot(OtherS,Other).
+
+
 
 get_search_mode_next_point(StateO,StateO,Guess):-
 	path_by_random(StateO,Guess).
@@ -678,3 +680,24 @@ replace(O, R, [O|T], [R|T2]) :-
 replace(O, R, [H|T], [H|T2]) :- 
     H \= O, 
     replace(O, R, T, T2).
+
+
+shoot_dir_change([Dir1|Dirs],NewGuess):-
+    shoot_dir_change(Dirs,Dir1,ShootGuess),
+    AddedGuess = [Dir1|ShootGuess],
+    flatten(AddedGuess, NewGuess),
+    write(NewGuess).
+
+
+shoot_dir_change([], _Previous, []).
+shoot_dir_change([Dir1|Dirs],Previous,[AddDir|NewGuess]):-
+    (
+        Dir1 \= Previous
+        -> AddDir = [Dir1 | shoot],
+        shoot_dir_change(Dirs,Dir1,NewGuess)
+        ;
+        writeln("HERE"),
+        AddDir = Dir1,
+        writeln(AddDir),
+        shoot_dir_change(Dirs,Dir1,NewGuess)
+    ).
