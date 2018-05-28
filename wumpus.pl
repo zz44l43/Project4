@@ -239,7 +239,7 @@ path_by_random(State,Path):-
         delete_edges(Point),
         path_by_random(UpdatedState,Path)
         ;
-        pick_path_point(UpdatedState,NewPaths,Path)
+        pick_path_point(State,NewPaths,Path)
     ).
 
 pick_path_point(State,NewPaths,Path):-
