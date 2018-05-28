@@ -222,6 +222,8 @@ get_all_path_point(State,Point,NewPaths):-
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,NewState,Path):-
+    writeln("START PATH BY RANDOM"),
+    writeln(State),
     get_search_mode(State,Mode),
     (
         Mode = stench
