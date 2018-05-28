@@ -106,9 +106,15 @@ updateState(StateO,[shoot|Guess], [_|Feedback], X-Y, State):-
 updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
 	nl(),
 	write("STENCH STATE UPDATE"),
-	getPositionAfterFeedback(X-Y, Dir,PostPosition),
-	updateMap(StateO,PostPosition,stench,MapState),
-	set_state_stench(MapState,PostPosition,StenchState),
+    getPositionAfterFeedback(X-Y, Dir,PostPosition),
+    get_state_stench_point(StateO,StenchPoints),
+    (
+        \+ member(PostPosition,StenchPoints)
+        -> updateMap(StateO,PostPosition,stench,MapState),
+        set_state_stench(MapState,PostPosition,StenchState)
+        ;
+        StenchState = StateO
+    ),
 	updateState(StenchState,Guess,Feedback,PostPosition,State).
 	
 updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
@@ -219,8 +225,11 @@ get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
     get_state_initial_point(State,InitialPoint),
     get_state_round(State,Round),
+    get_state_row_number(StateO,Row),
+    get_state_column_number(StateO,Column),
+    Limit is Row + Column,
     (
-        Round < 40
+        Round < Limit
         ->  findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths)
         ;
         findall(FindPath,find_no_restriction(InitialPoint,Point,FindPath),AllPaths)
