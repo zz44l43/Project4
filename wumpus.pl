@@ -329,7 +329,11 @@ pick_smell_point(State,Point):-
     writeln("SMELL POINTS"),
     writeln(IntersectedPoints),
     removeEmpty(Points,NonEmptyPoints),
-    nth0(0,NonEmptyPoints,Point).
+    (
+        NonEmptyPoints = []
+        -> pick_point(State,Point)
+        ; nth0(0,NonEmptyPoints,Point)
+    ).
 
 pick_point(State,Point):-
     nl(),
