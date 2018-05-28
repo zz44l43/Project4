@@ -327,7 +327,7 @@ pick_smell_point(State,Point):-
     get_state_map(State,Map),
     pick_valid_points(IntersectedPoints,Map,Points),
     writeln("SMELL POINTS"),
-    writeln(Points),
+    writeln(IntersectedPoints),
     removeEmpty(Points,NonEmptyPoints),
     nth0(0,NonEmptyPoints,Point).
 
