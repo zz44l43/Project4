@@ -216,7 +216,7 @@ get_all_path_point(State,Point,NewPaths):-
         ->  findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths)
         ;
         findall(FindPath,find_no_restriction(InitialPoint,Point,FindPath),AllPaths)
-    )
+    ),
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,Path):-
