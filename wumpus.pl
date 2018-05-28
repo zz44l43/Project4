@@ -226,7 +226,9 @@ get_all_path_point(State,Point,NewPaths):-
     get_state_initial_point(State,InitialPoint),
     get_state_round(State,Round),
     get_state_row_number(StateO,Row),
+    writeln("ROWOWOW"),
     get_state_column_number(StateO,Column),
+    writeln("COLMNNN"),
     Limit = Row + Column,
     (
         Round < Limit
