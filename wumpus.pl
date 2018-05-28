@@ -30,7 +30,7 @@ get_search_mode(State,SearchMode):-
 		-> SearchMode = wumpus
 		;
         SmellPoints \= []
-        -> SearchMode = smell
+        -> SearchMode = smell,
         ;
         StenchPoints \= []
         -> SearchMode = stench
@@ -232,8 +232,8 @@ path_by_random(State,NewState,Path):-
         write(Point)
         ;
         Mode = smell
-        -> pick_smell_point(State,Point),
-        write("SMELL MODE PICKING"),
+        -> write("SMELL MODE PICKING"),
+        pick_smell_point(State,Point),
         write(Point)
         ;
         pick_point(State,Point),
