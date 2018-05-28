@@ -238,6 +238,7 @@ path_by_random(State,Path):-
         -> nl(),
         write("DIDNT FIND ANY REPICK"),
         updateMap(State,Point,wall,UpdatedState),
+        writeln(UpdatedState),
         delete_edges(Point),
         path_by_random(UpdatedState,Path)
         ;
