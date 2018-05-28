@@ -112,12 +112,16 @@ updateState(StateO,[Dir|Guess], [stench|Feedback], X-Y, State):-
 	updateState(StenchState,Guess,Feedback,PostPosition,State).
 	
 updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
-	nl(),
-	write("SMELL STATE UPDATE"),
-	getPositionAfterFeedback(X-Y, Dir,PostPosition),
-	updateMap(StateO,PostPosition,smell,MapState),
-	set_state_smell(MapState,PostPosition,SmellState),
-	updateState(SmellState,Guess,Feedback,PostPosition,State).
+        nl(),
+        write("SMELL STATE UPDATE"),
+        getPositionAfterFeedback(X-Y, Dir,PostPosition),
+        get_state_smell_point(StateO,SmellPoints),
+        (
+            \+ member(PostPosition,SmellPoints)
+            -> 	updateMap(StateO,PostPosition,smell,MapState),
+            set_state_smell(MapState,PostPosition,SmellState)
+        ),
+        updateState(SmellState,Guess,Feedback,PostPosition,State).
 
 updateState(StateO,[Dir|Guess], [empty|Feedback], X-Y, State):-
 	nl(),
