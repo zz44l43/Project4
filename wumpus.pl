@@ -181,7 +181,7 @@ getPositionAfterFeedback(X-Y, Dir, PostPosition):-
         PostPosition = X-NewY
     ).
 
-get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
+get_state_wumpus_point_path(StateO,NewState,SearchGuess):-
     nl(),
     write("WUMPUS MODE"),
     write(StateO),
@@ -192,10 +192,10 @@ get_state_wumpus_point_path(StateO,StateO,SearchGuess):-
     get_all_path_point(StateO,WumpusPoint,NewPaths),
     (
         NewPaths = []
-        -> path_by_random(StateO,RandomPath),
+        -> path_by_random(StateO,NewState,RandomPath),
         pick_path_point(StateO,RandomPath,SearchGuess)
-        ;pick_path_point(StateO,NewPaths,SearchGuess)
-
+        ;NewState = StateO,
+        pick_path_point(StateO,NewPaths,SearchGuess)
     ).
 
 
@@ -206,8 +206,8 @@ add_shoot([Dir|OtherS],[Dir,shoot|Other]):-
 
 
 
-get_search_mode_next_point(StateO,StateO,Guess):-
-	path_by_random(StateO,Guess).
+get_search_mode_next_point(StateO,NewState,Guess):-
+	path_by_random(StateO,NewState,Guess).
 
 get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
@@ -221,7 +221,7 @@ get_all_path_point(State,Point,NewPaths):-
     ),
 	subtract(AllPaths,History,NewPaths).
 
-path_by_random(State,Path):-
+path_by_random(State,NewState,Path):-
     get_search_mode(State,Mode),
     (
         Mode = stench
@@ -248,8 +248,9 @@ path_by_random(State,Path):-
         updateMap(State,Point,wall,UpdatedState),
         writeln(UpdatedState),
         delete_edges(Point),
-        path_by_random(UpdatedState,Path)
+        path_by_random(UpdatedState,NewState,Path)
         ;
+        NewState = State,
         pick_path_point(State,NewPaths,Path)
     ).
 
