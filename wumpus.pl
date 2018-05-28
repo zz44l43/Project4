@@ -30,7 +30,7 @@ get_search_mode(State,SearchMode):-
 		-> SearchMode = wumpus
 		;
         SmellPoints \= []
-        -> SearchMode = smell,
+        -> SearchMode = smell
         ;
         StenchPoints \= []
         -> SearchMode = stench
