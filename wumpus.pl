@@ -120,6 +120,8 @@ updateState(StateO,[Dir|Guess], [smell|Feedback], X-Y, State):-
             \+ member(PostPosition,SmellPoints)
             -> 	updateMap(StateO,PostPosition,smell,MapState),
             set_state_smell(MapState,PostPosition,SmellState)
+            ;
+            SmellState = StateO
         ),
         updateState(SmellState,Guess,Feedback,PostPosition,State).
 
