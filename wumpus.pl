@@ -209,8 +209,14 @@ get_search_mode_next_point(StateO,StateO,Guess):-
 
 get_all_path_point(State,Point,NewPaths):-
     get_state_history(State,History),
-	get_state_initial_point(State,InitialPoint),
-    findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths),
+    get_state_initial_point(State,InitialPoint),
+    get_state_round(State,Round),
+    (
+        Round < 25
+        ->  findall(FindPath,find(InitialPoint,Point,FindPath),AllPaths)
+        ;
+        findall(FindPath,find_no_restriction(InitialPoint,Point,FindPath),AllPaths)
+    )
 	subtract(AllPaths,History,NewPaths).
 
 path_by_random(State,Path):-
@@ -618,8 +624,7 @@ find_no_restriction(Start, End, Path) :-
 find_no_restriction(Start, Start, _Previous, []).
 find_no_restriction(Start, End, Previous, [Dirn|Path]) :-
         edge(Start, Dirn, Med),
-        length(Previous,PLength),
-        \+ PLength > 10,
+        \+ member(Med, Previous), % dont visit previous places
         find_no_restriction(Med, End, [Med|Previous], Path).        
 
 get_map_points_by_feedback([],_,[]).
