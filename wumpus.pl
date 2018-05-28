@@ -216,14 +216,14 @@ get_all_path_point(State,Point,NewPaths):-
 path_by_random(State,Path):-
     get_search_mode(State,Mode),
     (
-        Mode = smell
-        -> pick_smell_point(State,Point),
-        write("SMELL MODE PICKING"),
-        write(Point)
-        ;
         Mode = stench
         -> pick_stench_point(State,Point),
         write("STENCH MODE PICKING"),
+        write(Point)
+        ;
+        Mode = smell
+        -> pick_smell_point(State,Point),
+        write("SMELL MODE PICKING"),
         write(Point)
         ;
         pick_point(State,Point),
@@ -235,7 +235,9 @@ path_by_random(State,Path):-
     get_all_path_point(State,Point,NewPaths),
     (
         NewPaths = []
-        -> updateMap(State,Point,wall,UpdatedState),
+        -> nl(),
+        write("DIDNT FIND ANY REPICK"),
+        updateMap(State,Point,wall,UpdatedState),
         delete_edges(Point),
         path_by_random(UpdatedState,Path)
         ;
